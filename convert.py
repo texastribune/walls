@@ -155,15 +155,23 @@ def convert_donors(accounts, opportunities):
             'AccountId')['Text_For_Donor_Wall__c'].to_dict()
 
     # make 'Amount' be numeric:
-    opportunities.Amount = opportunities['Amount'].astype(float)
+    opportunities['Amount'] = pd.to_numeric(opportunities['Amount'],
+            errors='coerce')
+    opportunities = opportunities.dropna()
+
+    # drop opps that have no account
+    opportunities = opportunities[opportunities.AccountId != '']
 
     # convert to an actual date:
     opportunities['CloseDate'] = pd.to_datetime(opportunities['CloseDate'])
-
     # we only need the year and this will let us pivot by it:
     opportunities['Year'] = [x.year for x in opportunities.CloseDate]
 
-    final = opportunities.pivot_table(index=['AccountId', 'Year'], aggfunc=sum)
+    all_time = opportunities.pivot_table(index=['AccountId'], aggfunc=sum)
+    all_time.Year = 'all-time'
+    all_time = all_time.reset_index()
+    both = pd.concat([opportunities, all_time])
+    final = both.pivot_table(index=['AccountId', 'Year'], aggfunc=sum)
 
     final_list = list()
 
@@ -176,9 +184,16 @@ def convert_donors(accounts, opportunities):
         for row in new_df.iterrows():
             year = row[0][1]
             amount = row[1][0]
+            amount = Decimal(amount)
+            amount = amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            if amount < 10:
+                amount = "Less than $10"
+            else:
+                amount = '${:,.0f}'.format(amount)
+
             donations_dict = {
                     'year': year,
-                    'amount': amount
+                    'amount': '{}'.format(amount)
                     }
             account_dict['donations'].append(donations_dict)
         final_list.append(account_dict)
@@ -187,7 +202,37 @@ def convert_donors(accounts, opportunities):
     return export
 
 if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
 
+    # These are examples for testing:
 
+    from pandas import DataFrame
+    opportunities = DataFrame({
+        "AccountId": ["A01", "B01", "A01", "B01"],
+        "Amount": [5, 20, 4, 4000],
+        "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
+    })
+
+    accounts = DataFrame({
+        "AccountId": ["A01", "B01"],
+        "Text_For_Donor_Wall__c": ["Donor A", "Donor B"]
+    })
+    foo = convert_donors(opportunities=opportunities, accounts=accounts)
+    print foo
+
+    opportunities = DataFrame({
+        "AccountId": ["A01", "B01", "A01", "B01", "B01"],
+        "Amount": [5, 20, 4, 40, 30],
+        "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04',
+            '2010-01-02', '2010-01-02'],
+        "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
+            '01216000001IhmxAAC', '01216000001IhmxAAC', '01216000001IhmxAAC'],
+        "Type": ['Standard', 'In Kind', '', 'In Kind', ''],
+    })
+
+    accounts = DataFrame({
+        "AccountId": ["A01", "B01"],
+        "Text_For_Donor_Wall__c": ["Donor A", "Donor B"],
+        "Website": ['http://A01.com', 'http://B01.com'],
+    })
+    foo = convert_sponsors(opportunities=opportunities, accounts=accounts)
+    print foo
