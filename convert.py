@@ -1,10 +1,134 @@
+from decimal import Decimal, ROUND_HALF_UP
 import json
 
 import pandas as pd
 
-# TODO: exclude certain types of revenue
+DIGITAL_PAGES = '01216000001IhIEAA0'
+EVENT_SPONSORSHIPS = '01216000001IhmxAAC'
 
-def export_to_json(accounts, opportunities):
+
+def make_pretty_money(amount):
+    """
+    Round to nearest dollar. Format nicely.
+    """
+    amount = Decimal(amount)
+    amount = amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+    amount = '${:,.0f}'.format(amount)
+    return amount
+
+
+def digital_revenue(row):
+    if row['Type'] != 'In Kind' and row[
+            'RecordTypeId'] == DIGITAL_PAGES:
+        row['digital_revenue'] = row['Amount']
+    else:
+        row['digital_revenue'] = 0
+    return row
+
+
+def digital_in_kind(row):
+    if row['Type'] == 'In Kind' and row[
+            'RecordTypeId'] == DIGITAL_PAGES:
+        row['digital_in_kind'] = row['Amount']
+    else:
+        row['digital_in_kind'] = 0
+    return row
+
+
+def events_in_kind(row):
+    if row['Type'] == 'In Kind' and row[
+            'RecordTypeId'] == EVENT_SPONSORSHIPS:
+        row['events_in_kind'] = row['Amount']
+    else:
+        row['events_in_kind'] = 0
+    return row
+
+
+def events_revenue(row):
+    if row['Type'] != 'In Kind' and row[
+            'RecordTypeId'] == EVENT_SPONSORSHIPS:
+        row['events_revenue'] = row['Amount']
+    else:
+        row['events_revenue'] = 0
+    return row
+
+
+def convert_sponsors(accounts, opportunities):
+    """
+    Takes two pandas dataframes: one mapping account IDs to names and URLs
+    and another with the opportunities.
+
+    It returns a JSON string suitable for use in a web app.
+
+    """
+
+    # make a dict mapping Account ID to Sponsor Wall text:
+    wall_text_dict = accounts.set_index(
+            'AccountId')['Text_For_Donor_Wall__c'].to_dict()
+    # and another mapping to URL:
+    url_dict = accounts.set_index(
+            'AccountId')['Website'].to_dict()
+
+    # make 'Amount' be numeric:
+    opportunities['Amount'] = pd.to_numeric(opportunities['Amount'],
+            errors='coerce')
+    opportunities = opportunities.dropna()
+
+    # drop opps that have no account
+    opportunities = opportunities[opportunities.AccountId != '']
+
+    # convert to an actual date:
+    opportunities['CloseDate'] = pd.to_datetime(opportunities['CloseDate'])
+
+    # we only need the year and this will let us pivot by it:
+    opportunities['Year'] = [x.year for x in opportunities.CloseDate]
+
+    # these split the different revenue types into different columns
+    # there's probably better/other ways to do this but I don't know
+    # them (yet)
+    opportunities = opportunities.apply(digital_revenue, axis=1)
+    opportunities = opportunities.apply(digital_in_kind, axis=1)
+    opportunities = opportunities.apply(events_revenue, axis=1)
+    opportunities = opportunities.apply(events_in_kind, axis=1)
+
+    # we no longer need this column now:
+    del opportunities['Amount']
+
+    # calculate all-time numbers and set that as a 'year'
+    all_time = opportunities.pivot_table(index=['AccountId'], aggfunc=sum)
+    all_time.Year = 'all-time'
+    all_time = all_time.reset_index()
+
+    both = pd.concat([opportunities, all_time])
+    final = both.pivot_table(index=['Year', 'AccountId'], aggfunc=sum)
+    final['total'] = final.sum(axis=1)
+
+    # convert to a dict that will map to JSON
+    final_dict = {}
+    for year, new_df in final.groupby(level=0):
+        year_list = []
+        for row in new_df.iterrows():
+            accountid = row[0][1]
+            account_dict = {
+                'sponsor': wall_text_dict[accountid],
+                'url': url_dict[accountid],
+                'digital_revenue': make_pretty_money(
+                    row[1]['digital_revenue']),
+                'digital_in_kind': make_pretty_money(
+                    row[1]['digital_in_kind']),
+                'events_revenue': make_pretty_money(row[1]['events_revenue']),
+                'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
+                'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
+                'total': make_pretty_money(row[1]['total']),
+                }
+            year_list.append(account_dict)
+        final_dict[year] = year_list
+
+    export = json.dumps(final_dict, indent=4)
+    return export
+
+
+def convert_donors(accounts, opportunities):
     """
     Takes two pandas dataframes: one mapping account IDs to names and
     another with the opportunities.
