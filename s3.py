@@ -5,14 +5,12 @@ import StringIO
 from boto.s3.connection import S3Connection, OrdinaryCallingFormat
 from boto.s3.key import Key
 
-# This value should be set to the frequency that this job is run. Right now I
-# believe it will be called every 12 hours. If that changes this should too:
-HOURS_TO_EXPIRE = 12
+from config import HOURS_TO_EXPIRE, BUCKET
 
 
 def push_to_s3(filename=None, contents=None):
     """
-    Save a file to the the membership bucket with name and contents
+    Save a file to the the configured bucket with name and contents
     specified in the call.
 
     It compresses the data.
@@ -27,7 +25,7 @@ def push_to_s3(filename=None, contents=None):
         f.write(contents)
 
     conn = S3Connection(calling_format=OrdinaryCallingFormat())
-    bucket = conn.get_bucket('membership.texastribune.org')
+    bucket = conn.get_bucket(BUCKET)
     k = Key(bucket)
     k.key = filename
     expires = datetime.utcnow() + timedelta(hours=HOURS_TO_EXPIRE)
