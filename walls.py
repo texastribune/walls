@@ -1,6 +1,4 @@
 from time import sleep
-import StringIO
-import gzip
 
 from pandas import DataFrame
 from salesforce_bulk import SalesforceBulk
@@ -91,20 +89,13 @@ opps, accts = sf_data(sponsors_query)
 print "Transforming and exporting to JSON..."
 json_output = convert_sponsors(opportunities=opps, accounts=accts)
 
-out = StringIO.StringIO()
-with gzip.GzipFile(fileobj=out, mode="w") as f:
-    f.write(json_output)
-
 print "Saving sponsors to S3..."
-push_to_s3(filename='sponsors.json.gz', contents=out.getvalue())
+push_to_s3(filename='sponsors.json.gz', contents=json_output)
 
 # Donors
 opps, accounts = sf_data(donors_query)
 print "Transforming and exporting to JSON..."
 json_output = convert_donors(opportunities=opps, accounts=accts)
 
-out = StringIO.StringIO()
-with gzip.GzipFile(fileobj=out, mode="w") as f:
-    f.write(json_output)
 print "Saving donors to S3..."
-push_to_s3(filename='donors.json.gz', contents=out.getvalue())
+push_to_s3(filename='donors.json.gz', contents=json_output)
