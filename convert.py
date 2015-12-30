@@ -18,6 +18,9 @@ def make_pretty_money(amount):
 
 
 def digital_revenue(row):
+    """
+    Create digital revenue column.
+    """
     if row['Type'] != 'In Kind' and row[
             'RecordTypeId'] == DIGITAL_PAGES:
         row['digital_revenue'] = row['Amount']
@@ -27,6 +30,9 @@ def digital_revenue(row):
 
 
 def digital_in_kind(row):
+    """
+    Create in kind digital revenue column.
+    """
     if row['Type'] == 'In Kind' and row[
             'RecordTypeId'] == DIGITAL_PAGES:
         row['digital_in_kind'] = row['Amount']
@@ -36,6 +42,9 @@ def digital_in_kind(row):
 
 
 def events_in_kind(row):
+    """
+    Create in kind events column.
+    """
     if row['Type'] == 'In Kind' and row[
             'RecordTypeId'] == EVENT_SPONSORSHIPS:
         row['events_in_kind'] = row['Amount']
@@ -45,6 +54,9 @@ def events_in_kind(row):
 
 
 def events_revenue(row):
+    """
+    Create events column.
+    """
     if row['Type'] != 'In Kind' and row[
             'RecordTypeId'] == EVENT_SPONSORSHIPS:
         row['events_revenue'] = row['Amount']

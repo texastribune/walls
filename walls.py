@@ -35,6 +35,13 @@ donors_query = """
 
 
 def sf_data(query):
+    """
+    Get opportunity data using supplied query.
+    Get account data.
+
+    Return both as dataframes.
+
+    """
 
     USER = SALESFORCE['USERNAME']
     PASS = SALESFORCE['PASSWORD']
