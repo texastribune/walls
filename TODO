@@ -1,3 +1,0 @@
-add license
-move HOURS_TO_EXPIRE and bucket name to config.py
-move gzipping to push_to_s3 function
