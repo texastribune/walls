@@ -14,3 +14,7 @@ This queries Salesforce for opportunity information. Massages it into a nice JSO
 Configure `env` file with Salesforce anw AWS variables.
 
 `make`
+
+### License
+
+This project is licensed under the terms of the MIT license.
