@@ -118,7 +118,6 @@ def convert_sponsors(accounts, opportunities):
                     row[1]['digital_in_kind']),
                 'events_revenue': make_pretty_money(row[1]['events_revenue']),
                 'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
-                'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
                 'total': make_pretty_money(row[1]['total']),
                 }
             year_list.append(account_dict)
