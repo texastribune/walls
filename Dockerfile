@@ -10,6 +10,5 @@ RUN apt-get update -qq && \
 COPY requirements.txt /app/
 RUN pip install -r /app/requirements.txt
 
-EXPOSE 80
 COPY *.py /app/
 ENTRYPOINT /bin/bash
