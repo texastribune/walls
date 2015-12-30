@@ -1,14 +1,14 @@
 APP=walls
 NS=texastribune
 
+run:
+	docker-compose run ${APP}
+
+test:
+	docker-compose run --entrypoint=py.test ${APP} tests.py
+
 build:
 	docker build --tag=${NS}/${APP} .
-
-debug:
-	docker run --volumes-from=${APP} --interactive=true --tty=true ${NS}/${APP} bash
-
-run:
-	docker run --name=${APP} --detach=true ${NS}/${APP}
 
 interactive: build
 	docker run \
