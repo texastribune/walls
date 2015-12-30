@@ -5,6 +5,9 @@ from convert import convert_donors, convert_sponsors, make_pretty_money
 
 
 def test_convert_to_json_with_empty_amount():
+    """
+    Verify that blank values are ignored.
+    """
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
@@ -51,6 +54,9 @@ def test_convert_to_json_with_empty_amount():
 
 
 def test_convert_to_json_normal():
+    """
+    Check the normal case.
+    """
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
@@ -102,6 +108,9 @@ def test_convert_to_json_normal():
 
 
 def test_convert_to_json_under_10():
+    """
+    Confirm that totals under $10 are aggregated.
+    """
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
@@ -153,6 +162,9 @@ def test_convert_to_json_under_10():
 
 
 def test_convert_to_json_all_time():
+    """
+    Check all time.
+    """
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
@@ -204,6 +216,9 @@ def test_convert_to_json_all_time():
 
 
 def test_make_pretty_money_commas():
+    """
+    Check that commas get inserted in values over $999.
+    """
 
     input = 4000
     expected = '$4,000'
@@ -212,6 +227,9 @@ def test_make_pretty_money_commas():
 
 
 def test_make_pretty_money_rounding():
+    """
+    Check that rounding works.
+    """
 
     input = 4.50
     expected = '$5'
@@ -220,6 +238,9 @@ def test_make_pretty_money_rounding():
 
 
 def test_make_pretty_money_round_down():
+    """
+    Check that rounding works.
+    """
 
     input = 4.49
     expected = '$4'
@@ -228,6 +249,9 @@ def test_make_pretty_money_round_down():
 
 
 def test_sponsors():
+    """
+    Do an end-to-end sponsor check.
+    """
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01", "B01"],
