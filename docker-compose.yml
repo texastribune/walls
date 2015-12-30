@@ -1,0 +1,8 @@
+walls:
+  build: .
+  volumes:
+    - ./:/app
+  env_file:
+    - ./env
+  working_dir: /app
+  command: python walls.py
