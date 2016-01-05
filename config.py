@@ -11,5 +11,7 @@ SALESFORCE = {
     "USERNAME": os.getenv('SALESFORCE_USERNAME'),
     "PASSWORD": os.getenv('SALESFORCE_PASSWORD'),
     "HOST": os.getenv("SALESFORCE_HOST"),
-    "TOKEN": os.getenv("SALESFORCE_TOKEN")
+    "TOKEN": os.getenv("SALESFORCE_TOKEN"),
+    "CLIENT_ID": os.getenv("SALESFORCE_CLIENT_ID"),
+    "CLIENT_SECRET": os.getenv("SALESFORCE_CLIENT_SECRET"),
 }
