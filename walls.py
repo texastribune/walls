@@ -51,11 +51,11 @@ class SalesforceConnection(object):
                 'client_id': SALESFORCE['CLIENT_ID'],
                 'client_secret': SALESFORCE['CLIENT_SECRET'],
                 'username': SALESFORCE['USERNAME'],
-                'password': '{}{}'.format(SALESFORCE['PASSWORD'],
+                'password': '{0}{1}'.format(SALESFORCE['PASSWORD'],
                     SALESFORCE['TOKEN']),
                 }
         token_path = '/services/oauth2/token'
-        url = '{}://{}{}'.format('https', SALESFORCE['HOST'],
+        url = '{0}://{1}{2}'.format('https', SALESFORCE['HOST'],
                 token_path)
         # TODO: some error handling here:
         r = requests.post(url, data=payload)
@@ -69,7 +69,7 @@ class SalesforceConnection(object):
                 }
 
     def query(self, query, path='/services/data/v33.0/query'):
-        url = '{}{}'.format(self.instance_url, path)
+        url = '{0}{1}'.format(self.instance_url, path)
         if query is None:
             payload = {}
         else:
