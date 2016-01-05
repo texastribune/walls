@@ -1,11 +1,14 @@
 from time import sleep
+import json
 
 from pandas import DataFrame
+import requests
 from salesforce_bulk import SalesforceBulk
 from simple_salesforce import Salesforce
 
 from config import SALESFORCE
-from convert import convert_sponsors, convert_donors
+from convert import (convert_sponsors, convert_donors,
+        _invert_and_aggregate, _extract_and_map)
 from s3 import push_to_s3
 
 # Events and Digital Pages
@@ -30,6 +33,69 @@ donors_query = """
     )
     AND StageName = 'Closed Won'
 """
+
+circle_query = """
+    SELECT Text_For_Donor_Wall__c, npo02__LastMembershipLevel__c
+    FROM Account
+    WHERE npo02__LastMembershipLevel__c
+    LIKE '%Circle' ORDER BY npo02__LastMembershipLevel__c
+"""
+
+
+class SalesforceConnection(object):
+
+    def __init__(self):
+
+        payload = {
+                'grant_type': 'password',
+                'client_id': SALESFORCE['CLIENT_ID'],
+                'client_secret': SALESFORCE['CLIENT_SECRET'],
+                'username': SALESFORCE['USERNAME'],
+                'password': '{}{}'.format(SALESFORCE['PASSWORD'],
+                    SALESFORCE['TOKEN']),
+                }
+        token_path = '/services/oauth2/token'
+        url = '{}://{}{}'.format('https', SALESFORCE['HOST'],
+                token_path)
+        # TODO: some error handling here:
+        r = requests.post(url, data=payload)
+        response = json.loads(r.text)
+        self.instance_url = response['instance_url']
+        access_token = response['access_token']
+
+        self.headers = {
+                'Authorization': 'Bearer {}'.format(access_token),
+                'X-PrettyPrint': '1',
+                }
+
+    def query(self, query, path='/services/data/v33.0/query'):
+        url = '{}{}'.format(self.instance_url, path)
+        if query is None:
+            payload = {}
+        else:
+            payload = {'q': query}
+        # TODO: error handling:
+        r = requests.get(url, headers=self.headers, params=payload)
+        response = json.loads(r.text)
+        # recursively get the rest of the records:
+        if response['done'] is False:
+            return response['records'] + self.query(query=None,
+                    path=response['nextRecordsUrl'])
+        return response['records']
+
+
+def generate_circle_data():
+
+    # circle wall
+    sf = SalesforceConnection()
+    response = sf.query(circle_query)
+    new_dict = _extract_and_map(argument=response,
+            key='Text_For_Donor_Wall__c',
+            value='npo02__LastMembershipLevel__c')
+    final = _invert_and_aggregate(new_dict)
+    json_output = json.dumps(final)
+
+    push_to_s3(filename='circle-members.json.gz', contents=json_output)
 
 
 def sf_data(query):
@@ -82,6 +148,10 @@ def sf_data(query):
     accts.rename(columns={'Id': 'AccountId'}, inplace=True)
 
     return opps, accts
+
+# Circles
+print "Fetching Circle data..."
+generate_circle_data()
 
 # Sponsors
 opps, accts = sf_data(sponsors_query)

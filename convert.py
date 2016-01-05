@@ -212,6 +212,22 @@ def convert_donors(accounts, opportunities):
     export = json.dumps(final_list, indent=4)
     return export
 
+
+def _extract_and_map(argument=None, key=None, value=None):
+    _ = dict()
+    for item in argument:
+        _[item[key]] = item[value]
+    return _
+
+
+def _invert_and_aggregate(the_dict):
+    _ = {}
+    # invert it
+    for k, v in the_dict.items():
+        _.setdefault(v, []).append(k)
+    return _
+
+
 if __name__ == "__main__":
 
     # These are examples for testing:
