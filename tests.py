@@ -326,3 +326,31 @@ def test_sponsors():
     """
     actual = convert_sponsors(opportunities=opportunities, accounts=accounts)
     assert json.loads(actual) == json.loads(expected)
+
+
+def test__extract_and_map():
+    # this is the kind of list that will be returned from SF:
+    test_list = [{
+        u'Text_For_Donor_Wall__c': u'Mark Olinger',
+        u'attributes': {
+            u'type': u'Account',
+            u'url': u'/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ'
+            },
+        u'npo02__LastMembershipLevel__c': u"Editor's Circle"
+    }]
+    key = 'Text_For_Donor_Wall__c'
+    value = 'npo02__LastMembershipLevel__c'
+    # this is what we want:
+    expected = {u'Mark Olinger': u"Editor's Circle"}
+    actual = _extract_and_map(test_list, key, value)
+    assert expected == actual
+
+
+def test__invert_and_aggregate():
+    input = {u'Mark Olinger': u"Editor's Circle"}
+    expected = {
+            u"Editor's Circle":
+            [u'Mark Olinger']
+            }
+    actual = _invert_and_aggregate(input)
+    assert expected == actual
