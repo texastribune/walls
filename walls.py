@@ -94,6 +94,11 @@ class SalesforceConnection(object):
 
 
 def generate_circle_data():
+    """
+    Create a JSON file based on current circle members that
+    identifies the level of circle membership. Save this
+    file to S3.
+    """
 
     # circle wall
     sf = SalesforceConnection()
