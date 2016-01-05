@@ -43,6 +43,12 @@ circle_query = """
 
 
 class SalesforceConnection(object):
+    """
+    Represents a connection to Salesforce.
+
+    Creating an instance will authenticate and allow queries
+    to be processed.
+    """
 
     def __init__(self):
 
@@ -69,6 +75,9 @@ class SalesforceConnection(object):
                 }
 
     def query(self, query, path='/services/data/v33.0/query'):
+        """
+        Run a SOQL query against this Salesforce instance.
+        """
         url = '{0}{1}'.format(self.instance_url, path)
         if query is None:
             payload = {}

@@ -214,6 +214,17 @@ def convert_donors(accounts, opportunities):
 
 
 def _extract_and_map(argument=None, key=None, value=None):
+    """
+    Transform a list with dictionaries like this:
+    key1: value1
+    key2: value2
+
+    To a dictionary like this:
+
+    value1: value2
+
+    See tests.py for an example.
+    """
     _ = dict()
     for item in argument:
         _[item[key]] = item[value]
@@ -221,6 +232,20 @@ def _extract_and_map(argument=None, key=None, value=None):
 
 
 def _invert_and_aggregate(the_dict):
+    """
+    Transform a dictionary like this:
+
+    { key1: value1,
+      key2: value2,
+      key3: value2 }
+
+    Into a dictionary of lists like this:
+
+    { value1: [ key1 ],
+      value2: [ key2, key3 ] }
+
+    See tests.py for an example:
+    """
     _ = {}
     # invert it
     for k, v in the_dict.items():

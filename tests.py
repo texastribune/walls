@@ -329,6 +329,9 @@ def test_sponsors():
 
 
 def test__extract_and_map():
+    """
+    Check that the transform works as expected.
+    """
     # this is the kind of list that will be returned from SF:
     test_list = [{
         u'Text_For_Donor_Wall__c': u'Mark Olinger',
@@ -347,6 +350,9 @@ def test__extract_and_map():
 
 
 def test__invert_and_aggregate():
+    """
+    Check that the transform works as expected.
+    """
     input = {u'Mark Olinger': u"Editor's Circle"}
     expected = {
             u"Editor's Circle":
