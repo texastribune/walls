@@ -34,6 +34,8 @@ def push_to_s3(filename=None, contents=None):
             policy='public-read',
             headers={
                 'Cache-Control': 'public',
+                'Content-Type': 'application/json',
+                'Content-Encoding': 'gzip',
                 'Expires': '{}'.format(expires)
                 })
     k.set_acl('public-read')
