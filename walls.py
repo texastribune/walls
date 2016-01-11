@@ -109,7 +109,7 @@ def generate_circle_data():
     final = _invert_and_aggregate(new_dict)
     json_output = json.dumps(final)
 
-    push_to_s3(filename='circle-members.json.gz', contents=json_output)
+    push_to_s3(filename='circle-members.json', contents=json_output)
 
 
 def sf_data(query):
@@ -174,7 +174,7 @@ print "Transforming and exporting to JSON..."
 json_output = convert_sponsors(opportunities=opps, accounts=accts)
 
 print "Saving sponsors to S3..."
-push_to_s3(filename='sponsors.json.gz', contents=json_output)
+push_to_s3(filename='sponsors.json', contents=json_output)
 
 # Donors
 opps, accounts = sf_data(donors_query)
@@ -182,4 +182,4 @@ print "Transforming and exporting to JSON..."
 json_output = convert_donors(opportunities=opps, accounts=accts)
 
 print "Saving donors to S3..."
-push_to_s3(filename='donors.json.gz', contents=json_output)
+push_to_s3(filename='donors.json', contents=json_output)
