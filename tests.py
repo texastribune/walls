@@ -261,7 +261,7 @@ def test_sponsors():
             '2010-01-02', '2010-01-02'],
         "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
             '01216000001IhmxAAC', '01216000001IhmxAAC', '01216000001IhmxAAC'],
-        "Type": ['Standard', 'In Kind', '', 'In Kind', ''],
+        "Type": ['Standard', 'In-Kind', '', 'In-Kind', ''],
     })
 
     accounts = DataFrame({

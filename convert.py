@@ -21,7 +21,7 @@ def digital_revenue(row):
     """
     Create digital revenue column.
     """
-    if row['Type'] != 'In Kind' and row[
+    if row['Type'] != 'In-Kind' and row[
             'RecordTypeId'] == DIGITAL_PAGES:
         row['digital_revenue'] = row['Amount']
     else:
@@ -33,7 +33,7 @@ def digital_in_kind(row):
     """
     Create in kind digital revenue column.
     """
-    if row['Type'] == 'In Kind' and row[
+    if row['Type'] == 'In-Kind' and row[
             'RecordTypeId'] == DIGITAL_PAGES:
         row['digital_in_kind'] = row['Amount']
     else:
@@ -45,7 +45,7 @@ def events_in_kind(row):
     """
     Create in kind events column.
     """
-    if row['Type'] == 'In Kind' and row[
+    if row['Type'] == 'In-Kind' and row[
             'RecordTypeId'] == EVENT_SPONSORSHIPS:
         row['events_in_kind'] = row['Amount']
     else:
@@ -57,7 +57,7 @@ def events_revenue(row):
     """
     Create events column.
     """
-    if row['Type'] != 'In Kind' and row[
+    if row['Type'] != 'In-Kind' and row[
             'RecordTypeId'] == EVENT_SPONSORSHIPS:
         row['events_revenue'] = row['Amount']
     else:
@@ -278,7 +278,7 @@ if __name__ == "__main__":
             '2010-01-02', '2010-01-02'],
         "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
             '01216000001IhmxAAC', '01216000001IhmxAAC', '01216000001IhmxAAC'],
-        "Type": ['Standard', 'In Kind', '', 'In Kind', ''],
+        "Type": ['Standard', 'In-Kind', '', 'In-Kind', ''],
     })
 
     accounts = DataFrame({
