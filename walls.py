@@ -31,7 +31,7 @@ donors_query = """
         '01216000001IhQIAA0',
         '01216000001IhI9AAK'
     )
-    AND StageName = 'Closed Won'
+    AND StageName IN ('Closed Won', 'Pledged')
 """
 
 circle_query = """
