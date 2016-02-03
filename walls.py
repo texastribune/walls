@@ -35,10 +35,10 @@ donors_query = """
 """
 
 circle_query = """
-    SELECT Text_For_Donor_Wall__c, npo02__LastMembershipLevel__c
+    SELECT Text_For_Donor_Wall__c, Membership_Level_TT__c
     FROM Account
-    WHERE npo02__LastMembershipLevel__c
-    LIKE '%Circle' ORDER BY npo02__LastMembershipLevel__c
+    WHERE Membership_Level_TT__c
+    LIKE '%Circle' ORDER BY Membership_Level_TT__c
 """
 
 
@@ -105,7 +105,7 @@ def generate_circle_data():
     response = sf.query(circle_query)
     new_dict = _extract_and_map(argument=response,
             key='Text_For_Donor_Wall__c',
-            value='npo02__LastMembershipLevel__c')
+            value='Membership_Level_TT__c')
     final = _invert_and_aggregate(new_dict)
     json_output = json.dumps(final)
 
