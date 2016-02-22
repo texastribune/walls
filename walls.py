@@ -19,7 +19,7 @@ sponsors_query = """
             '01216000001IhmxAAC',
             '01216000001IhIEAA0'
         )
-        AND StageName IN ('Closed Won', 'Invoiced', 'Ready to Invoice')
+        AND StageName IN ('Closed Won', 'Invoiced', 'Pledged')
     """
 
 # Donations, Grants, and Membership:
