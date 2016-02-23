@@ -1,7 +1,7 @@
 import json
 from pandas import DataFrame
 
-from convert import (convert_donors, convert_sponsors,
+from convert import (convert_donors, convert_sponsors, clean_url,
         make_pretty_money, _extract_and_map, _invert_and_aggregate)
 
 
@@ -360,3 +360,22 @@ def test__invert_and_aggregate():
             }
     actual = _invert_and_aggregate(input)
     assert expected == actual
+
+
+def test_clean_url():
+
+    input = 'NULL'
+    actual = clean_url(input)
+    assert actual == ''
+
+    input = 'www.abc.org'
+    actual = clean_url(input)
+    assert actual == 'http://www.abc.org'
+
+    input = ''
+    actual = clean_url(input)
+    assert actual == ''
+
+    input = 'http://'
+    actual = clean_url(input)
+    assert actual == ''
