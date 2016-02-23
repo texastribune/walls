@@ -65,6 +65,18 @@ def events_revenue(row):
     return row
 
 
+def clean_url(string):
+    if string == 'NULL':
+        return ''
+    if string == 'http://':
+        return ''
+    if string == '':
+        return string
+    if string.startswith('http'):
+        return string
+    return "http://" + string
+
+
 def convert_sponsors(accounts, opportunities):
     """
     Takes two pandas dataframes: one mapping account IDs to names and URLs
@@ -123,7 +135,7 @@ def convert_sponsors(accounts, opportunities):
             accountid = row[0][1]
             account_dict = {
                 'sponsor': wall_text_dict[accountid],
-                'url': url_dict[accountid],
+                'url': clean_url(url_dict[accountid]),
                 'digital_revenue': make_pretty_money(
                     row[1]['digital_revenue']),
                 'digital_in_kind': make_pretty_money(
