@@ -363,6 +363,10 @@ def test__invert_and_aggregate():
 
 
 def test_clean_url():
+    """
+    Test that the function that cleans up URLs works
+    as expected.
+    """
 
     input = 'NULL'
     actual = clean_url(input)

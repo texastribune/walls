@@ -66,6 +66,10 @@ def events_revenue(row):
 
 
 def clean_url(string):
+    """
+    Given a url that doesn't conform to http://something.here
+    make it look like that.
+    """
     if string == 'NULL':
         return ''
     if string == 'http://':
