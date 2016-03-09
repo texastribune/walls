@@ -149,7 +149,7 @@ def convert_sponsors(accounts, opportunities):
                 'total': make_pretty_money(row[1]['total']),
                 }
             year_list.append(account_dict)
-        final_dict[year] = year_list
+        final_dict[year] = sorted(year_list, key=lambda k: k['sponsor'])
 
     export = json.dumps(final_dict, indent=4)
     return export
