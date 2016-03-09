@@ -328,6 +328,91 @@ def test_sponsors():
     assert json.loads(actual) == json.loads(expected)
 
 
+def test_sponsors_sort_order():
+    """
+    Confirm that sponsors are sorted by their name, not ID.
+    """
+    opportunities = DataFrame({
+        "AccountId": ["A01", "B01", "C01"],
+        "Amount": [20, 20, 20],
+        "CloseDate": ['2009-01-02', '2009-01-02', '2009-01-02'],
+        "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
+            '01216000001IhIEAA0'],
+        "Type": ['Standard', 'Standard', 'Standard'],
+    })
+
+    accounts = DataFrame({
+        "AccountId": ["A01", "B01", "C01"],
+        "Text_For_Donor_Wall__c": ["Donor Z", "Donor A", "Donor B"],
+        "Website": ['http://Z01.com', 'http://A01.com', 'http://B01.com'],
+    })
+
+    expected = """
+    {
+        "2009": [
+            {
+                "url": "http://A01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor A",
+                "events_revenue": "$0",
+                "total": "$20"
+            },
+            {
+                "url": "http://B01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor B",
+                "events_revenue": "$0",
+                "total": "$20"
+            },
+            {
+                "url": "http://Z01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor Z",
+                "events_revenue": "$0",
+                "total": "$20"
+            }
+        ],
+        "all-time": [
+            {
+                "url": "http://A01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor A",
+                "events_revenue": "$0",
+                "total": "$20"
+            },
+            {
+                "url": "http://B01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor B",
+                "events_revenue": "$0",
+                "total": "$20"
+            },
+            {
+                "url": "http://Z01.com",
+                "events_in_kind": "$0",
+                "digital_revenue": "$20",
+                "digital_in_kind": "$0",
+                "sponsor": "Donor Z",
+                "events_revenue": "$0",
+                "total": "$20"
+            }
+        ]
+    }
+    """
+    actual = convert_sponsors(opportunities=opportunities, accounts=accounts)
+    assert json.loads(actual) == json.loads(expected)
+
+
 def test__extract_and_map():
     """
     Check that the transform works as expected.
