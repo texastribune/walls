@@ -151,7 +151,7 @@ def convert_sponsors(accounts, opportunities):
             year_list.append(account_dict)
         final_dict[year] = sorted(year_list, key=lambda k: k['sponsor'])
 
-    export = json.dumps(final_dict, indent=4)
+    export = json.dumps(final_dict)
     return export
 
 
@@ -225,7 +225,7 @@ def convert_donors(accounts, opportunities):
             account_dict['donations'].append(donations_dict)
         final_list.append(account_dict)
 
-    export = json.dumps(final_list, indent=4)
+    export = json.dumps(final_list)
     return export
 
 
