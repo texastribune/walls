@@ -1,6 +1,6 @@
 salesforce-bulk==1.1.0
 simple-salesforce==0.68.1
-pandas==0.17.1
-boto==2.38.0
+pandas==0.18.0
+boto==2.39.0
 ipdb
 pytest
