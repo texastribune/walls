@@ -47,4 +47,4 @@ build:
     - script:
         name: run tests
         code: |
-          make test
+          py.test tests.py
