@@ -229,21 +229,23 @@ def convert_donors(accounts, opportunities):
     return export
 
 
-def _extract_and_map(argument=None, key=None, value=None):
+def _extract_and_map(argument=None, key=None, value=None, sort_key=None):
     """
     Transform a list with dictionaries like this:
-    key1: value1
+    key1: value1,
+    sort_key: sort_value,
     key2: value2
 
     To a dictionary like this:
 
-    value1: value2
+    'sort_value:value1': value2
 
     See tests.py for an example.
     """
     _ = dict()
     for item in argument:
-        _[item[key]] = item[value]
+        dict_key = '{}:{}'.format(item[sort_key], item[key])
+        _[dict_key] = item[value]
     return _
 
 

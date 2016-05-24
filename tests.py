@@ -438,12 +438,62 @@ def test__invert_and_aggregate():
     """
     Check that the transform works as expected.
     """
-    input = {u'Mark Olinger': u"Editor's Circle"}
+    input = {u'Olinger Account:Mark Olinger': u"Editor's Circle"}
     expected = {
             u"Editor's Circle":
-            [u'Mark Olinger']
+            [u'Olinger Account:Mark Olinger']
             }
     actual = _invert_and_aggregate(input)
+    assert expected == actual
+
+
+def test__sort_circle():
+    input = {
+            u"Editor's Circle": [
+                u'Zlinger Account:Mark Zlinger',
+                u'Alinger Account:Mark Alinger',
+                u'Blinger Account:Mark Blinger'
+                ],
+            u"Chairman's Circle": [
+                u"Baz", "Foo", "Bar",
+                ]
+            }
+    expected = {
+            u"Editor's Circle": [
+                u'Alinger Account:Mark Alinger',
+                u'Blinger Account:Mark Blinger',
+                u'Zlinger Account:Mark Zlinger'
+                ],
+            u"Chairman's Circle": [
+                'Bar', 'Baz', 'Foo',
+                ]
+            }
+    actual = _sort_circle(input)
+    assert expected == actual
+
+
+def test__strip_sort_key():
+    input = {
+            u"Editor's Circle": [
+                u'Alinger Account:Mark Alinger',
+                u'Blinger Account:Mark Blinger',
+                u'Zlinger Account:Mark Zlinger'
+                ],
+            u"Chairman's Circle": [
+                'Bar', 'Baz', 'Foo',
+                ]
+            }
+    expected = {
+            u"Editor's Circle": [
+                u'Mark Alinger',
+                u'Mark Blinger',
+                u'Mark Zlinger'
+                ],
+            u"Chairman's Circle": [
+                'Bar', 'Baz', 'Foo',
+                ]
+            }
+    actual = _strip_sort_key(input)
     assert expected == actual
 
 
