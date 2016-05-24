@@ -220,7 +220,7 @@ def convert_donors(accounts, opportunities):
 
             donations_dict = {
                     'year': year,
-                    'amount': '{}'.format(amount)
+                    'amount': '{0}'.format(amount)
                     }
             account_dict['donations'].append(donations_dict)
         final_list.append(account_dict)
@@ -244,7 +244,7 @@ def _extract_and_map(argument=None, key=None, value=None, sort_key=None):
     """
     _ = dict()
     for item in argument:
-        dict_key = '{}:{}'.format(item[sort_key], item[key])
+        dict_key = '{0}:{1}'.format(item[sort_key], item[key])
         _[dict_key] = item[value]
     return _
 
