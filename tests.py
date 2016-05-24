@@ -420,18 +420,31 @@ def test__extract_and_map():
     """
     # this is the kind of list that will be returned from SF:
     test_list = [{
-        u'Text_For_Donor_Wall__c': u'Mark Olinger',
+        u'Text_For_Donor_Wall__c': u'Mark Zlinger',
+        u'Name': u'Zlinger Account',
         u'attributes': {
             u'type': u'Account',
             u'url': u'/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ'
             },
+        u'npo02__LastMembershipLevel__c': u"Editor's Circle"},
+        {
+        u'Text_For_Donor_Wall__c': u'Mark Olinger',
+        u'Name': u'Olinger Account',
+        u'attributes': {
+            u'type': u'Account',
+            u'url': u'/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ'
+             },
         u'npo02__LastMembershipLevel__c': u"Editor's Circle"
-    }]
+        }]
     key = 'Text_For_Donor_Wall__c'
     value = 'npo02__LastMembershipLevel__c'
     # this is what we want:
-    expected = {u'Mark Olinger': u"Editor's Circle"}
-    actual = _extract_and_map(test_list, key, value)
+    expected = {
+            u'Olinger Account:Mark Olinger': u"Editor's Circle",
+            u'Zlinger Account:Mark Zlinger': u"Editor's Circle"
+            }
+    sort = 'Name'
+    actual = _extract_and_map(test_list, key, value, sort)
     assert expected == actual
 
 
