@@ -2,7 +2,8 @@ import json
 from pandas import DataFrame
 
 from convert import (convert_donors, convert_sponsors, clean_url,
-        make_pretty_money, _extract_and_map, _invert_and_aggregate)
+        make_pretty_money, _extract_and_map, _invert_and_aggregate,
+        _sort_circle, _strip_sort_key)
 
 
 def test_convert_to_json_with_empty_amount():

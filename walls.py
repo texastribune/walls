@@ -8,7 +8,8 @@ from simple_salesforce import Salesforce
 
 from config import SALESFORCE
 from convert import (convert_sponsors, convert_donors,
-        _invert_and_aggregate, _extract_and_map)
+        _invert_and_aggregate, _extract_and_map, _sort_circle,
+        _strip_sort_key)
 from s3 import push_to_s3
 
 # Events and Digital Pages
