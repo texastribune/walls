@@ -462,6 +462,10 @@ def test__invert_and_aggregate():
 
 
 def test__sort_circle():
+    """
+    Check that circles are sorted by account name.
+    """
+
     input = {
             u"Editor's Circle": [
                 u'Zlinger Account:Mark Zlinger',
@@ -487,6 +491,10 @@ def test__sort_circle():
 
 
 def test__strip_sort_key():
+    """
+    Make sure they key used to sort data is stripped out before being
+    sent down the pipe.
+    """
     input = {
             u"Editor's Circle": [
                 u'Alinger Account:Mark Alinger',
