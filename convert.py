@@ -271,6 +271,33 @@ def _invert_and_aggregate(the_dict):
     return _
 
 
+def _sort_circle(the_dict):
+    """
+    Each item in the dictionary has a list. Return a new dict with each of
+    those lists sorted by key.
+    """
+    new_dict = {}
+    for k, v in the_dict.items():
+        new_dict[k] = sorted(v)
+    return new_dict
+
+
+def _strip_sort_key(the_dict):
+    """
+    The sort key is prepended to the each of the values in this list of
+    dictionaries. But that sort key shouldn't remain a part of the dictionary,
+    so remove it. It's separated from the name by a colon.
+    """
+    new_dict = {}
+    for k, v in the_dict.items():
+        new_list = []
+        for item in v:
+            tup = item.rpartition(':')
+            new_list.append(tup[2])
+        new_dict[k] = new_list
+    return new_dict
+
+
 if __name__ == "__main__":
 
     # These are examples for testing:
@@ -287,7 +314,6 @@ if __name__ == "__main__":
         "Text_For_Donor_Wall__c": ["Donor A", "Donor B"]
     })
     foo = convert_donors(opportunities=opportunities, accounts=accounts)
-    print foo
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01", "B01"],
@@ -305,4 +331,3 @@ if __name__ == "__main__":
         "Website": ['http://A01.com', 'http://B01.com'],
     })
     foo = convert_sponsors(opportunities=opportunities, accounts=accounts)
-    print foo
