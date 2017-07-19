@@ -12,7 +12,7 @@ from convert import (convert_sponsors, convert_donors,
         _strip_sort_key)
 from s3 import push_to_s3
 
-# Events and Digital Pages
+# Events and Digital Pages, excluding Festival
 sponsors_query = """
         SELECT Id, AccountId, Amount, CloseDate, Type, RecordTypeId
         FROM Opportunity
@@ -21,6 +21,7 @@ sponsors_query = """
             '01216000001IhIEAA0'
         )
         AND StageName IN ('Closed Won', 'Invoiced', 'Pledged')
+        AND Type != 'Earned Revenue'
     """
 
 # Donations, Grants, and Membership:
