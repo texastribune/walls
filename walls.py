@@ -139,13 +139,13 @@ def sf_data(query):
 
     bulk = SalesforceBulk(sessionId=sf.session_id, host=HOST)
 
-    print "Creating Opportunity job..."
+    print ("Creating Opportunity job...")
     job = bulk.create_query_job("Opportunity", contentType='CSV')
-    print "Issuing query..."
+    print ("Issuing query...")
 
     batch = bulk.query(job, query)
     while not bulk.is_batch_done(job, batch):
-        print "waiting for query to complete..."
+        print ("waiting for query to complete...")
         sleep(3)
     bulk.close_job(job)
 
@@ -155,13 +155,13 @@ def sf_data(query):
     opps = DataFrame.from_dict(all)
 
     job = bulk.create_query_job("Account", contentType='CSV')
-    print "Creating Account job..."
+    print ("Creating Account job...")
 
     batch = bulk.query(job,
             "SELECT Id, Website, Text_For_Donor_Wall__c FROM Account")
-    print "Issuing query..."
+    print ("Issuing query...")
     while not bulk.is_batch_done(job, batch):
-        print "waiting for query to complete..."
+        print ("waiting for query to complete...")
         sleep(3)
     bulk.close_job(job)
 
@@ -173,22 +173,22 @@ def sf_data(query):
     return opps, accts
 
 # Circles
-print "Fetching Circle data..."
+print ("Fetching Circle data...")
 generate_circle_data()
 
 # Sponsors
 opps, accts = sf_data(sponsors_query)
 
-print "Transforming and exporting to JSON..."
+print ("Transforming and exporting to JSON...")
 json_output = convert_sponsors(opportunities=opps, accounts=accts)
 
-print "Saving sponsors to S3..."
+print ("Saving sponsors to S3...")
 push_to_s3(filename='sponsors.json', contents=json_output)
 
 # Donors
 opps, accounts = sf_data(donors_query)
-print "Transforming and exporting to JSON..."
+print ("Transforming and exporting to JSON...")
 json_output = convert_donors(opportunities=opps, accounts=accts)
 
-print "Saving donors to S3..."
+print ("Saving donors to S3...")
 push_to_s3(filename='donors.json', contents=json_output)
