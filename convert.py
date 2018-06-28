@@ -245,7 +245,7 @@ def _extract_and_map(argument=None, key=None, value=None, sort_key=None):
     """
     _ = dict()
     for item in argument:
-        dict_key = '{0}:{1}'.format(item[sort_key], item[key])
+        dict_key = '{0}:{1}'.format(item[sort_key].encode('utf-8'), item[key].encode('utf-8'))
         _[dict_key] = item[value]
     return _
 
