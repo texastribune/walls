@@ -18,7 +18,8 @@ sponsors_query = """
         FROM Opportunity
         WHERE RecordTypeId IN (
             '01216000001IhmxAAC',
-            '01216000001IhIEAA0'
+            '01216000001IhIEAA0',
+            '01246000000hj93AAA'
         )
         AND StageName IN ('Closed Won', 'Invoiced', 'Pledged')
         AND Type != 'Earned Revenue'

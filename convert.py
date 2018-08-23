@@ -5,6 +5,7 @@ import pandas as pd
 
 DIGITAL_PAGES = '01216000001IhIEAA0'
 EVENT_SPONSORSHIPS = '01216000001IhmxAAC'
+BUSINESS_MEMBERSHIP = '01246000000hj93AAA'
 
 
 def make_pretty_money(amount):
@@ -15,6 +16,16 @@ def make_pretty_money(amount):
     amount = amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
     amount = '${:,.0f}'.format(amount)
     return amount
+
+def business_membership(row):
+    """
+    Create business membership column.
+    """
+    if row['RecordTypeId'] == BUSINESS_MEMBERSHIP:
+        row['business_membership'] = row['Amount']
+    else:
+        row['business_membership'] = 0
+    return row
 
 
 def digital_revenue(row):
@@ -118,6 +129,7 @@ def convert_sponsors(accounts, opportunities):
     opportunities = opportunities.apply(digital_in_kind, axis=1)
     opportunities = opportunities.apply(events_revenue, axis=1)
     opportunities = opportunities.apply(events_in_kind, axis=1)
+    opportunities = opportunities.apply(business_membership, axis=1)
 
     # we no longer need this column now:
     del opportunities['Amount']
@@ -146,6 +158,7 @@ def convert_sponsors(accounts, opportunities):
                     row[1]['digital_in_kind']),
                 'events_revenue': make_pretty_money(row[1]['events_revenue']),
                 'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
+                'business_membership': make_pretty_money(row[1]['business_membership']),
                 'total': make_pretty_money(row[1]['total']),
                 }
             year_list.append(account_dict)
