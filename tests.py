@@ -13,7 +13,7 @@ def test_convert_to_json_with_empty_amount():
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [10, 20, 30, ''],
+        "Amount": [10.0, 20.0, 30.0, ''],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -62,7 +62,7 @@ def test_convert_to_json_normal():
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [10, 20, 30, 4000],
+        "Amount": [10.0, 20.0, 30.0, 4000.0],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -116,7 +116,7 @@ def test_convert_to_json_under_10():
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [5, 20, 4, 4000],
+        "Amount": [5.0, 20.0, 4.0, 4000.0],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -170,7 +170,7 @@ def test_convert_to_json_all_time():
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [5, 20, 4, 4000],
+        "Amount": [5.0, 20.0, 4.0, 4000.0],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -257,7 +257,7 @@ def test_sponsors():
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01", "B01"],
-        "Amount": [5, 20, 4, 40, 30],
+        "Amount": [5.0, 20.0, 4.0, 40.0, 30.0],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04',
             '2010-01-02', '2010-01-02'],
         "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
@@ -280,7 +280,8 @@ def test_sponsors():
                 "url": "http://A01.com",
                 "events_in_kind": "$0",
                 "total": "$9",
-                "digital_revenue": "$5"
+                "digital_revenue": "$5",
+                "business_membership": "$0"
             },
             {
                 "events_revenue": "$0",
@@ -289,7 +290,8 @@ def test_sponsors():
                 "url": "http://B01.com",
                 "events_in_kind": "$0",
                 "total": "$20",
-                "digital_revenue": "$0"
+                "digital_revenue": "$0",
+                "business_membership": "$0"
             }
         ],
         "2010": [
@@ -300,7 +302,8 @@ def test_sponsors():
                 "url": "http://B01.com",
                 "events_in_kind": "$40",
                 "total": "$70",
-                "digital_revenue": "$0"
+                "digital_revenue": "$0",
+                "business_membership": "$0"
             }
         ],
         "all-time": [
@@ -311,7 +314,8 @@ def test_sponsors():
                 "url": "http://A01.com",
                 "events_in_kind": "$0",
                 "total": "$9",
-                "digital_revenue": "$5"
+                "digital_revenue": "$5",
+                "business_membership": "$0"
             },
             {
                 "events_revenue": "$30",
@@ -320,7 +324,8 @@ def test_sponsors():
                 "url": "http://B01.com",
                 "events_in_kind": "$40",
                 "total": "$90",
-                "digital_revenue": "$0"
+                "digital_revenue": "$0",
+                "business_membership": "$0"
             }
         ]
     }
@@ -335,7 +340,7 @@ def test_sponsors_sort_order():
     """
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "C01"],
-        "Amount": [20, 20, 20],
+        "Amount": [20.0, 20.0, 20.0],
         "CloseDate": ['2009-01-02', '2009-01-02', '2009-01-02'],
         "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
             '01216000001IhIEAA0'],
@@ -358,6 +363,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor A",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             },
             {
@@ -367,6 +373,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor B",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             },
             {
@@ -376,6 +383,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor Z",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             }
         ],
@@ -387,6 +395,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor A",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             },
             {
@@ -396,6 +405,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor B",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             },
             {
@@ -405,6 +415,7 @@ def test_sponsors_sort_order():
                 "digital_in_kind": "$0",
                 "sponsor": "Donor Z",
                 "events_revenue": "$0",
+                "business_membership": "$0",
                 "total": "$20"
             }
         ]
@@ -440,8 +451,8 @@ def test__extract_and_map():
     value = 'npo02__LastMembershipLevel__c'
     # this is what we want:
     expected = {
-            u'Olinger Account:Mark Olinger': u"Editor's Circle",
-            u'Zlinger Account:Mark Zlinger': u"Editor's Circle"
+            "b'Olinger Account':b'Mark Olinger'": u"Editor's Circle",
+            "b'Zlinger Account':b'Mark Zlinger'": u"Editor's Circle"
             }
     sort = 'Name'
     actual = _extract_and_map(test_list, key, value, sort)
