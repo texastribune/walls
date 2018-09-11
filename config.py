@@ -4,7 +4,7 @@ import os
 # believe it will be called every 12 hours. If that changes this should too:
 HOURS_TO_EXPIRE = 12
 
-# where to store the compress JSON:
+# where to store the compressed JSON:
 BUCKET = 'membership.texastribune.org'
 
 SALESFORCE = {
