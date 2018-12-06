@@ -28,7 +28,7 @@ sponsors_query = """
 
 # Donations, Grants, and Membership:
 donors_query = """
-    SELECT Id, AccountId, Amount, CloseDate
+    SELECT Id, AccountId, Donor_Wall_Amount__c, CloseDate
     FROM Opportunity
     WHERE RecordTypeId IN (
         '01216000001IhHpAAK',

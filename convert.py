@@ -180,7 +180,7 @@ def convert_donors(accounts, opportunities):
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [1, 2, 3, 4],
+        "Donor_Wall_Amount__c": [1, 2, 3, 4],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -196,7 +196,7 @@ def convert_donors(accounts, opportunities):
             'AccountId')['Text_For_Donor_Wall__c'].to_dict()
 
     # make 'Amount' be numeric:
-    opportunities['Amount'] = pd.to_numeric(opportunities['Amount'],
+    opportunities['Donor_Wall_Amount__c'] = pd.to_numeric(opportunities['Donor_Wall_Amount__c'],
             errors='coerce')
     opportunities = opportunities.dropna()
 
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     from pandas import DataFrame
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [5, 20, 4, 4000],
+        "Donor_Wall_Amount__c": [5, 20, 4, 4000],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
     })
 
@@ -331,7 +331,7 @@ if __name__ == "__main__":
 
     opportunities = DataFrame({
         "AccountId": ["A01", "B01", "A01", "B01", "B01"],
-        "Amount": [5, 20, 4, 40, 30],
+        "Donor_Wall_Amount__c": [5, 20, 4, 40, 30],
         "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04',
             '2010-01-02', '2010-01-02'],
         "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
