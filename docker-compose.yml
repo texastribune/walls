@@ -1,5 +1,5 @@
 walls:
-  build: .
+  image: texastribune/walls
   volumes:
     - ./:/app
   env_file:
