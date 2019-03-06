@@ -207,4 +207,3 @@ json_output = convert_donors(opportunities=opps, accounts=accts)
 
 print("Saving donors to S3...")
 push_to_s3(filename="donors.json", contents=json_output)
-
