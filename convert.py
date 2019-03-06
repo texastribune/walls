@@ -3,9 +3,9 @@ import json
 
 import pandas as pd
 
-DIGITAL_PAGES = '01216000001IhIEAA0'
-EVENT_SPONSORSHIPS = '01216000001IhmxAAC'
-BUSINESS_MEMBERSHIP = '01246000000hj93AAA'
+DIGITAL_PAGES = "01216000001IhIEAA0"
+EVENT_SPONSORSHIPS = "01216000001IhmxAAC"
+BUSINESS_MEMBERSHIP = "01246000000hj93AAA"
 
 
 def make_pretty_money(amount):
@@ -13,18 +13,19 @@ def make_pretty_money(amount):
     Round to nearest dollar. Format nicely.
     """
     amount = Decimal(amount)
-    amount = amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-    amount = '${:,.0f}'.format(amount)
+    amount = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    amount = "${:,.0f}".format(amount)
     return amount
+
 
 def business_membership(row):
     """
     Create business membership column.
     """
-    if row['RecordTypeId'] == BUSINESS_MEMBERSHIP:
-        row['business_membership'] = row['Amount']
+    if row["RecordTypeId"] == BUSINESS_MEMBERSHIP:
+        row["business_membership"] = row["Amount"]
     else:
-        row['business_membership'] = 0
+        row["business_membership"] = 0
     return row
 
 
@@ -32,11 +33,10 @@ def digital_revenue(row):
     """
     Create digital revenue column.
     """
-    if row['Type'] != 'In-Kind' and row[
-            'RecordTypeId'] == DIGITAL_PAGES:
-        row['digital_revenue'] = row['Amount']
+    if row["Type"] != "In-Kind" and row["RecordTypeId"] == DIGITAL_PAGES:
+        row["digital_revenue"] = row["Amount"]
     else:
-        row['digital_revenue'] = 0
+        row["digital_revenue"] = 0
     return row
 
 
@@ -44,11 +44,10 @@ def digital_in_kind(row):
     """
     Create in kind digital revenue column.
     """
-    if row['Type'] == 'In-Kind' and row[
-            'RecordTypeId'] == DIGITAL_PAGES:
-        row['digital_in_kind'] = row['Amount']
+    if row["Type"] == "In-Kind" and row["RecordTypeId"] == DIGITAL_PAGES:
+        row["digital_in_kind"] = row["Amount"]
     else:
-        row['digital_in_kind'] = 0
+        row["digital_in_kind"] = 0
     return row
 
 
@@ -56,11 +55,10 @@ def events_in_kind(row):
     """
     Create in kind events column.
     """
-    if row['Type'] == 'In-Kind' and row[
-            'RecordTypeId'] == EVENT_SPONSORSHIPS:
-        row['events_in_kind'] = row['Amount']
+    if row["Type"] == "In-Kind" and row["RecordTypeId"] == EVENT_SPONSORSHIPS:
+        row["events_in_kind"] = row["Amount"]
     else:
-        row['events_in_kind'] = 0
+        row["events_in_kind"] = 0
     return row
 
 
@@ -68,11 +66,10 @@ def events_revenue(row):
     """
     Create events column.
     """
-    if row['Type'] != 'In-Kind' and row[
-            'RecordTypeId'] == EVENT_SPONSORSHIPS:
-        row['events_revenue'] = row['Amount']
+    if row["Type"] != "In-Kind" and row["RecordTypeId"] == EVENT_SPONSORSHIPS:
+        row["events_revenue"] = row["Amount"]
     else:
-        row['events_revenue'] = 0
+        row["events_revenue"] = 0
     return row
 
 
@@ -81,13 +78,13 @@ def clean_url(string):
     Given a url that doesn't conform to http://something.here
     make it look like that.
     """
-    if string == 'NULL':
-        return ''
-    if string == 'http://':
-        return ''
-    if string == '':
+    if string == "NULL":
+        return ""
+    if string == "http://":
+        return ""
+    if string == "":
         return string
-    if string.startswith('http'):
+    if string.startswith("http"):
         return string
     return "http://" + string
 
@@ -102,25 +99,22 @@ def convert_sponsors(accounts, opportunities):
     """
 
     # make a dict mapping Account ID to Sponsor Wall text:
-    wall_text_dict = accounts.set_index(
-            'AccountId')['Text_For_Donor_Wall__c'].to_dict()
+    wall_text_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
     # and another mapping to URL:
-    url_dict = accounts.set_index(
-            'AccountId')['Website'].to_dict()
+    url_dict = accounts.set_index("AccountId")["Website"].to_dict()
 
     # make 'Amount' be numeric:
-    opportunities['Amount'] = pd.to_numeric(opportunities['Amount'],
-            errors='coerce')
+    opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
     opportunities = opportunities.dropna()
 
     # drop opps that have no account
-    opportunities = opportunities[opportunities.AccountId != '']
+    opportunities = opportunities[opportunities.AccountId != ""]
 
     # convert to an actual date:
-    opportunities['CloseDate'] = pd.to_datetime(opportunities['CloseDate'])
+    opportunities["CloseDate"] = pd.to_datetime(opportunities["CloseDate"])
 
     # we only need the year and this will let us pivot by it:
-    opportunities['Year'] = [x.year for x in opportunities.CloseDate]
+    opportunities["Year"] = [x.year for x in opportunities.CloseDate]
 
     # these split the different revenue types into different columns
     # there's probably better/other ways to do this but I don't know
@@ -132,16 +126,16 @@ def convert_sponsors(accounts, opportunities):
     opportunities = opportunities.apply(business_membership, axis=1)
 
     # we no longer need this column now:
-    del opportunities['Amount']
+    del opportunities["Amount"]
 
     # calculate all-time numbers and set that as a 'year'
-    all_time = opportunities.pivot_table(index=['AccountId'], aggfunc=sum)
-    all_time.Year = 'all-time'
+    all_time = opportunities.pivot_table(index=["AccountId"], aggfunc=sum)
+    all_time.Year = "all-time"
     all_time = all_time.reset_index()
 
-    both = pd.concat([opportunities, all_time])
-    final = both.pivot_table(index=['Year', 'AccountId'], aggfunc=sum)
-    final['total'] = final.sum(axis=1)
+    both = pd.concat([opportunities, all_time], sort=False)
+    final = both.pivot_table(index=["Year", "AccountId"], aggfunc=sum)
+    final["total"] = final.sum(axis=1)
 
     # convert to a dict that will map to JSON
     final_dict = {}
@@ -150,20 +144,17 @@ def convert_sponsors(accounts, opportunities):
         for row in new_df.iterrows():
             accountid = row[0][1]
             account_dict = {
-                'sponsor': wall_text_dict[accountid],
-                'url': clean_url(url_dict[accountid]),
-                'digital_revenue': make_pretty_money(
-                    row[1]['digital_revenue']),
-                'digital_in_kind': make_pretty_money(
-                    row[1]['digital_in_kind']),
-                'events_revenue': make_pretty_money(row[1]['events_revenue']),
-                'events_in_kind': make_pretty_money(row[1]['events_in_kind']),
-                'business_membership': make_pretty_money(row[1]['business_membership']),
-                'total': make_pretty_money(row[1]['total']),
-                }
+                "sponsor": wall_text_dict[accountid],
+                "url": clean_url(url_dict[accountid]),
+                "digital_revenue": make_pretty_money(row[1]["digital_revenue"]),
+                "digital_in_kind": make_pretty_money(row[1]["digital_in_kind"]),
+                "events_revenue": make_pretty_money(row[1]["events_revenue"]),
+                "events_in_kind": make_pretty_money(row[1]["events_in_kind"]),
+                "business_membership": make_pretty_money(row[1]["business_membership"]),
+                "total": make_pretty_money(row[1]["total"]),
+            }
             year_list.append(account_dict)
-        final_dict[year] = sorted(year_list,
-                key=lambda k: k['sponsor'].lower())
+        final_dict[year] = sorted(year_list, key=lambda k: k["sponsor"].lower())
 
     export = json.dumps(final_dict)
     return export
@@ -192,51 +183,44 @@ def convert_donors(accounts, opportunities):
     """
 
     # make a dict mapping Account ID to Donor Wall text:
-    accounts_dict = accounts.set_index(
-            'AccountId')['Text_For_Donor_Wall__c'].to_dict()
+    accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
 
     # make 'Amount' be numeric:
-    opportunities['Amount'] = pd.to_numeric(opportunities['Amount'],
-            errors='coerce')
+    opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
     opportunities = opportunities.dropna()
 
     # drop opps that have no account
-    opportunities = opportunities[opportunities.AccountId != '']
+    opportunities = opportunities[opportunities.AccountId != ""]
 
     # convert to an actual date:
-    opportunities['CloseDate'] = pd.to_datetime(opportunities['CloseDate'])
+    opportunities["CloseDate"] = pd.to_datetime(opportunities["CloseDate"])
     # we only need the year and this will let us pivot by it:
-    opportunities['Year'] = [x.year for x in opportunities.CloseDate]
+    opportunities["Year"] = [x.year for x in opportunities.CloseDate]
 
-    all_time = opportunities.pivot_table(index=['AccountId'], aggfunc=sum)
-    all_time.Year = 'all-time'
+    all_time = opportunities.pivot_table(index=["AccountId"], aggfunc=sum)
+    all_time.Year = "all-time"
     all_time = all_time.reset_index()
-    both = pd.concat([opportunities, all_time])
-    final = both.pivot_table(index=['AccountId', 'Year'], aggfunc=sum)
+    both = pd.concat([opportunities, all_time], sort=False)
+    final = both.pivot_table(index=["AccountId", "Year"], aggfunc=sum)
 
     final_list = list()
 
     # convert to a dict that will map to JSON
     for accountid, new_df in final.groupby(level=0):
-        account_dict = {
-                'name': accounts_dict[accountid]
-                }
-        account_dict['donations'] = list()
+        account_dict = {"name": accounts_dict[accountid]}
+        account_dict["donations"] = list()
         for row in new_df.iterrows():
             year = row[0][1]
             amount = row[1][0]
             amount = Decimal(amount)
-            amount = amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            amount = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             if amount < 10:
                 amount = "Less than $10"
             else:
-                amount = '${:,.0f}'.format(amount)
+                amount = "${:,.0f}".format(amount)
 
-            donations_dict = {
-                    'year': year,
-                    'amount': '{0}'.format(amount)
-                    }
-            account_dict['donations'].append(donations_dict)
+            donations_dict = {"year": year, "amount": "{0}".format(amount)}
+            account_dict["donations"].append(donations_dict)
         final_list.append(account_dict)
 
     export = json.dumps(final_list)
@@ -258,7 +242,9 @@ def _extract_and_map(argument=None, key=None, value=None, sort_key=None):
     """
     _ = dict()
     for item in argument:
-        dict_key = '{0}:{1}'.format(item[sort_key].encode('utf-8'), item[key].encode('utf-8'))
+        dict_key = "{0}:{1}".format(
+            item[sort_key].encode("utf-8"), item[key].encode("utf-8")
+        )
         _[dict_key] = item[value]
     return _
 
@@ -306,7 +292,7 @@ def _strip_sort_key(the_dict):
     for k, v in the_dict.items():
         new_list = []
         for item in v:
-            tup = item.rpartition(':')
+            tup = item.rpartition(":")
             new_list.append(tup[2])
         new_dict[k] = new_list
     return new_dict
@@ -317,31 +303,47 @@ if __name__ == "__main__":
     # These are examples for testing:
 
     from pandas import DataFrame
-    opportunities = DataFrame({
-        "AccountId": ["A01", "B01", "A01", "B01"],
-        "Amount": [5, 20, 4, 4000],
-        "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04', '2010-01-02']
-    })
 
-    accounts = DataFrame({
-        "AccountId": ["A01", "B01"],
-        "Text_For_Donor_Wall__c": ["Donor A", "Donor B"]
-    })
+    opportunities = DataFrame(
+        {
+            "AccountId": ["A01", "B01", "A01", "B01"],
+            "Amount": [5, 20, 4, 4000],
+            "CloseDate": ["2009-01-02", "2009-01-03", "2009-01-04", "2010-01-02"],
+        }
+    )
+
+    accounts = DataFrame(
+        {"AccountId": ["A01", "B01"], "Text_For_Donor_Wall__c": ["Donor A", "Donor B"]}
+    )
     foo = convert_donors(opportunities=opportunities, accounts=accounts)
 
-    opportunities = DataFrame({
-        "AccountId": ["A01", "B01", "A01", "B01", "B01"],
-        "Amount": [5, 20, 4, 40, 30],
-        "CloseDate": ['2009-01-02', '2009-01-03', '2009-01-04',
-            '2010-01-02', '2010-01-02'],
-        "RecordTypeId": ['01216000001IhIEAA0', '01216000001IhIEAA0',
-            '01216000001IhmxAAC', '01216000001IhmxAAC', '01216000001IhmxAAC'],
-        "Type": ['Standard', 'In-Kind', '', 'In-Kind', ''],
-    })
+    opportunities = DataFrame(
+        {
+            "AccountId": ["A01", "B01", "A01", "B01", "B01"],
+            "Amount": [5, 20, 4, 40, 30],
+            "CloseDate": [
+                "2009-01-02",
+                "2009-01-03",
+                "2009-01-04",
+                "2010-01-02",
+                "2010-01-02",
+            ],
+            "RecordTypeId": [
+                "01216000001IhIEAA0",
+                "01216000001IhIEAA0",
+                "01216000001IhmxAAC",
+                "01216000001IhmxAAC",
+                "01216000001IhmxAAC",
+            ],
+            "Type": ["Standard", "In-Kind", "", "In-Kind", ""],
+        }
+    )
 
-    accounts = DataFrame({
-        "AccountId": ["A01", "B01"],
-        "Text_For_Donor_Wall__c": ["Donor A", "Donor B"],
-        "Website": ['http://A01.com', 'http://B01.com'],
-    })
+    accounts = DataFrame(
+        {
+            "AccountId": ["A01", "B01"],
+            "Text_For_Donor_Wall__c": ["Donor A", "Donor B"],
+            "Website": ["http://A01.com", "http://B01.com"],
+        }
+    )
     foo = convert_sponsors(opportunities=opportunities, accounts=accounts)
