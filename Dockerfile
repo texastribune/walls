@@ -1,5 +1,4 @@
-FROM python:2.7
-MAINTAINER @x110dc
+FROM python:3.6
 
 COPY requirements.txt /app/
 RUN pip install -r /app/requirements.txt
