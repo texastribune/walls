@@ -5,11 +5,11 @@ import os
 HOURS_TO_EXPIRE = 12
 
 # where to store the compress JSON:
-BUCKET = 'membership.texastribune.org'
+BUCKET = os.getenv("BUCKET", default="membership-test.texastribune.org")
 
 SALESFORCE = {
-    "USERNAME": os.getenv('SALESFORCE_USERNAME'),
-    "PASSWORD": os.getenv('SALESFORCE_PASSWORD'),
+    "USERNAME": os.getenv("SALESFORCE_USERNAME"),
+    "PASSWORD": os.getenv("SALESFORCE_PASSWORD"),
     "HOST": os.getenv("SALESFORCE_HOST"),
     "TOKEN": os.getenv("SALESFORCE_TOKEN"),
     "CLIENT_ID": os.getenv("SALESFORCE_CLIENT_ID"),
