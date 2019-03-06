@@ -1,6 +1,6 @@
-salesforce-bulk==1.1.0
-simple-salesforce==0.68.1
-pandas==0.18.1
-boto==2.40.0
-ipdb
-pytest
+salesforce-bulk==2.1.0
+simple-salesforce==0.74.2
+pandas==0.24.1
+boto3==1.9.108
+#ipdb
+#pytest
