@@ -1,7 +1,7 @@
 APP=walls
 NS=texastribune
 
-run:
+run: build
 	docker-compose run ${APP}
 
 test:
