@@ -109,16 +109,16 @@ def business_roster():
 
     sf = SalesforceConnection()
 
-    path = '/services/data/v43.0/analytics/reports/00O46000000hUA3'
-    url = '{}{}'.format(sf.instance_url, path)
+    path = "/services/data/v43.0/analytics/reports/00O46000000hUA3"
+    url = "{}{}".format(sf.instance_url, path)
     resp = requests.get(url, headers=sf.headers)
     content = json.loads(resp.text)
     final = dict()
-    for item in content['factMap']['T!T']['rows']:
+    for item in content["factMap"]["T!T"]["rows"]:
         tmp = dict()
-        tmp['business_name'] = item['dataCells'][0]['label']
-        tmp['url'] = item['dataCells'][1]['value']
-        level = item['dataCells'][2]['label']
+        tmp["business_name"] = item["dataCells"][0]["label"]
+        tmp["url"] = item["dataCells"][1]["value"]
+        level = item["dataCells"][2]["label"]
         if level not in final:
             final[level] = list()
         final[level].append(tmp)
@@ -214,7 +214,7 @@ print("Fetching Circle data...")
 generate_circle_data()
 
 # Sponsors
-print ("Fetching Sponsor data...")
+print("Fetching Sponsor data...")
 opps, accts = sf_data(sponsors_query)
 
 print("Transforming and exporting to JSON...")
@@ -224,11 +224,11 @@ print("Saving sponsors to S3...")
 push_to_s3(filename="sponsors.json", contents=json_output)
 
 # Business memberships
-print ("Fetching business membership data...")
+print("Fetching business membership data...")
 json_output = business_roster()
 
-print ("Saving business roster to S3...")
-push_to_s3(filename='business-member-roster.json', contents=json_output)
+print("Saving business roster to S3...")
+push_to_s3(filename="business-member-roster.json", contents=json_output)
 
 # Donors
 opps, accounts = sf_data(donors_query)
