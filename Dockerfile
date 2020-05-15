@@ -1,4 +1,4 @@
-FROM python:3.8.1
+FROM python:3.8.3
 
 COPY requirements.txt /app/
 RUN pip install -r /app/requirements.txt
