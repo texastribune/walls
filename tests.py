@@ -1,15 +1,16 @@
 import json
+
 from pandas import DataFrame
 
 from convert import (
-    convert_donors,
-    convert_sponsors,
-    clean_url,
-    make_pretty_money,
     _extract_and_map,
     _invert_and_aggregate,
     _sort_circle,
     _strip_sort_key,
+    clean_url,
+    convert_donors,
+    convert_sponsors,
+    make_pretty_money,
 )
 
 
@@ -306,7 +307,8 @@ def test_sponsors():
                 "events_in_kind": "$0",
                 "total": "$9",
                 "digital_revenue": "$5",
-                "business_membership": "$0"
+                "business_membership": "$0",
+                "licensing" : "$0"
             },
             {
                 "events_revenue": "$0",
@@ -316,7 +318,8 @@ def test_sponsors():
                 "events_in_kind": "$0",
                 "total": "$20",
                 "digital_revenue": "$0",
-                "business_membership": "$0"
+                "business_membership": "$0",
+                "licensing" : "$0"
             }
         ],
         "2010": [
@@ -328,7 +331,8 @@ def test_sponsors():
                 "events_in_kind": "$40",
                 "total": "$70",
                 "digital_revenue": "$0",
-                "business_membership": "$0"
+                "business_membership": "$0",
+                "licensing" : "$0"
             }
         ],
         "all-time": [
@@ -340,7 +344,8 @@ def test_sponsors():
                 "events_in_kind": "$0",
                 "total": "$9",
                 "digital_revenue": "$5",
-                "business_membership": "$0"
+                "business_membership": "$0",
+                "licensing" : "$0"
             },
             {
                 "events_revenue": "$30",
@@ -350,7 +355,8 @@ def test_sponsors():
                 "events_in_kind": "$40",
                 "total": "$90",
                 "digital_revenue": "$0",
-                "business_membership": "$0"
+                "business_membership": "$0",
+                "licensing" : "$0"
             }
         ]
     }
@@ -396,6 +402,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor A",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             },
             {
@@ -406,6 +413,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor B",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             },
             {
@@ -416,6 +424,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor Z",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             }
         ],
@@ -428,6 +437,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor A",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             },
             {
@@ -438,6 +448,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor B",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             },
             {
@@ -448,6 +459,7 @@ def test_sponsors_sort_order():
                 "sponsor": "Donor Z",
                 "events_revenue": "$0",
                 "business_membership": "$0",
+                "licensing" : "$0",
                 "total": "$20"
             }
         ]
@@ -464,30 +476,30 @@ def test__extract_and_map():
     # this is the kind of list that will be returned from SF:
     test_list = [
         {
-            u"Text_For_Donor_Wall__c": u"Mark Zlinger",
-            u"Name": u"Zlinger Account",
-            u"attributes": {
-                u"type": u"Account",
-                u"url": u"/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ",
+            "Text_For_Donor_Wall__c": "Mark Zlinger",
+            "Name": "Zlinger Account",
+            "attributes": {
+                "type": "Account",
+                "url": "/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ",
             },
-            u"npo02__LastMembershipLevel__c": u"Editor's Circle",
+            "npo02__LastMembershipLevel__c": "Editor's Circle",
         },
         {
-            u"Text_For_Donor_Wall__c": u"Mark Olinger",
-            u"Name": u"Olinger Account",
-            u"attributes": {
-                u"type": u"Account",
-                u"url": u"/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ",
+            "Text_For_Donor_Wall__c": "Mark Olinger",
+            "Name": "Olinger Account",
+            "attributes": {
+                "type": "Account",
+                "url": "/services/data/v33.0/sobjects/Account/0011700000C46BMAAZ",
             },
-            u"npo02__LastMembershipLevel__c": u"Editor's Circle",
+            "npo02__LastMembershipLevel__c": "Editor's Circle",
         },
     ]
     key = "Text_For_Donor_Wall__c"
     value = "npo02__LastMembershipLevel__c"
     # this is what we want:
     expected = {
-        "b'Olinger Account':b'Mark Olinger'": u"Editor's Circle",
-        "b'Zlinger Account':b'Mark Zlinger'": u"Editor's Circle",
+        "Olinger Account:Mark Olinger": "Editor's Circle",
+        "Zlinger Account:Mark Zlinger": "Editor's Circle",
     }
     sort = "Name"
     actual = _extract_and_map(test_list, key, value, sort)
@@ -498,8 +510,8 @@ def test__invert_and_aggregate():
     """
     Check that the transform works as expected.
     """
-    input = {u"Olinger Account:Mark Olinger": u"Editor's Circle"}
-    expected = {u"Editor's Circle": [u"Olinger Account:Mark Olinger"]}
+    input = {"Olinger Account:Mark Olinger": "Editor's Circle"}
+    expected = {"Editor's Circle": ["Olinger Account:Mark Olinger"]}
     actual = _invert_and_aggregate(input)
     assert expected == actual
 
@@ -510,20 +522,20 @@ def test__sort_circle():
     """
 
     input = {
-        u"Editor's Circle": [
-            u"Zlinger Account:Mark Zlinger",
-            u"Alinger Account:Mark Alinger",
-            u"Blinger Account:Mark Blinger",
+        "Editor's Circle": [
+            "Zlinger Account:Mark Zlinger",
+            "Alinger Account:Mark Alinger",
+            "Blinger Account:Mark Blinger",
         ],
-        u"Chairman's Circle": [u"Baz", "Foo", "Bar"],
+        "Chairman's Circle": ["Baz", "Foo", "Bar"],
     }
     expected = {
-        u"Editor's Circle": [
-            u"Alinger Account:Mark Alinger",
-            u"Blinger Account:Mark Blinger",
-            u"Zlinger Account:Mark Zlinger",
+        "Editor's Circle": [
+            "Alinger Account:Mark Alinger",
+            "Blinger Account:Mark Blinger",
+            "Zlinger Account:Mark Zlinger",
         ],
-        u"Chairman's Circle": ["Bar", "Baz", "Foo"],
+        "Chairman's Circle": ["Bar", "Baz", "Foo"],
     }
     actual = _sort_circle(input)
     assert expected == actual
@@ -535,16 +547,16 @@ def test__strip_sort_key():
     sent down the pipe.
     """
     input = {
-        u"Editor's Circle": [
-            u"Alinger Account:Mark Alinger",
-            u"Blinger Account:Mark Blinger",
-            u"Zlinger Account:Mark Zlinger",
+        "Editor's Circle": [
+            "Alinger Account:Mark Alinger",
+            "Blinger Account:Mark Blinger",
+            "Zlinger Account:Mark Zlinger",
         ],
-        u"Chairman's Circle": ["Bar", "Baz", "Foo"],
+        "Chairman's Circle": ["Bar", "Baz", "Foo"],
     }
     expected = {
-        u"Editor's Circle": [u"Mark Alinger", u"Mark Blinger", u"Mark Zlinger"],
-        u"Chairman's Circle": ["Bar", "Baz", "Foo"],
+        "Editor's Circle": ["Mark Alinger", "Mark Blinger", "Mark Zlinger"],
+        "Chairman's Circle": ["Bar", "Baz", "Foo"],
     }
     actual = _strip_sort_key(input)
     assert expected == actual

@@ -1,20 +1,20 @@
-from time import sleep
-import unicodecsv
 import json
+from time import sleep
 
-from pandas import DataFrame
 import requests
+import unicodecsv
+from pandas import DataFrame
 from salesforce_bulk import SalesforceBulk
 from simple_salesforce import Salesforce
 
 from config import SALESFORCE
 from convert import (
-    convert_sponsors,
-    convert_donors,
-    _invert_and_aggregate,
     _extract_and_map,
+    _invert_and_aggregate,
     _sort_circle,
     _strip_sort_key,
+    convert_donors,
+    convert_sponsors,
 )
 from s3 import push_to_s3
 
@@ -25,7 +25,8 @@ sponsors_query = """
         WHERE RecordTypeId IN (
             '01216000001IhmxAAC',
             '01216000001IhIEAA0',
-            '01246000000hj93AAA'
+            '01246000000hj93AAA',
+            '01216000001IhvaAAC'
         )
         AND StageName IN ('Closed Won', 'Invoiced', 'Pledged')
         AND Type != 'Earned Revenue'

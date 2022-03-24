@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
 import gzip
+from datetime import datetime, timedelta
 from io import BytesIO
+
 import boto3
 
-from config import HOURS_TO_EXPIRE, BUCKET
+from config import BUCKET, HOURS_TO_EXPIRE
 
 
 def push_to_s3(filename=None, contents=None):

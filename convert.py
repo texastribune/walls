@@ -1,11 +1,12 @@
-from decimal import Decimal, ROUND_HALF_UP
 import json
+from decimal import ROUND_HALF_UP, Decimal
 
 import pandas as pd
 
 DIGITAL_PAGES = "01216000001IhIEAA0"
 EVENT_SPONSORSHIPS = "01216000001IhmxAAC"
 BUSINESS_MEMBERSHIP = "01246000000hj93AAA"
+LICENSING = "01216000001IhvaAAC"
 
 
 def make_pretty_money(amount):
@@ -16,6 +17,17 @@ def make_pretty_money(amount):
     amount = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     amount = "${:,.0f}".format(amount)
     return amount
+
+
+def licensing(row):
+    """
+    Create licensing column.
+    """
+    if row["RecordTypeId"] == LICENSING:
+        row["licensing"] = row["Amount"]
+    else:
+        row["licensing"] = 0
+    return row
 
 
 def business_membership(row):
@@ -124,6 +136,7 @@ def convert_sponsors(accounts, opportunities):
     opportunities = opportunities.apply(events_revenue, axis=1)
     opportunities = opportunities.apply(events_in_kind, axis=1)
     opportunities = opportunities.apply(business_membership, axis=1)
+    opportunities = opportunities.apply(licensing, axis=1)
 
     # we no longer need this column now:
     del opportunities["Amount"]
@@ -151,6 +164,7 @@ def convert_sponsors(accounts, opportunities):
                 "events_revenue": make_pretty_money(row[1]["events_revenue"]),
                 "events_in_kind": make_pretty_money(row[1]["events_in_kind"]),
                 "business_membership": make_pretty_money(row[1]["business_membership"]),
+                "licensing": make_pretty_money(row[1]["licensing"]),
                 "total": make_pretty_money(row[1]["total"]),
             }
             year_list.append(account_dict)
