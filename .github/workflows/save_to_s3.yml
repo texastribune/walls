@@ -1,0 +1,135 @@
+name: 'Walls: Save salesforce json data to S3'
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      job-name:
+        description: 'Name of the job to activate'
+        required: true
+        defaut: 'WallsSaveToS3'
+        type: choice
+        options:
+        - WallsSaveToS3
+        - WallsSaveToS3Test
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+jobs:
+  WallsSaveToS3Test:
+    name: 'Test: Walls save to S3'
+    runs-on:
+      group: LiveLong
+      labels: [ self-hosted, cronjobs ]
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' || github.event.inputs.job-name == 'WallsSaveToS3Test'
+
+    steps:
+
+      - name: Checkout the repo
+        uses: actions/checkout@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_TRIBDEVOPS_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TRIBDEVOPS_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: texastribune/walls-test:latest
+          cache-from: type=registry,ref=texastribune/walls-cache:buildcache
+
+      - name: Run Walls save to S3 test job
+        run: |
+            docker run --rm \
+              --name wallsjobtest \
+              --env=SALESFORCE_HOST=${{ secrets.SALESFORCE_HOST }} \
+              --env=SALESFORCE_USERNAME=${{ secrets.SALESFORCE_USERNAME }} \
+              --env=SALESFORCE_PASSWORD=${{ secrets.SALESFORCE_PASSWORD }} \
+              --env=SALESFORCE_TOKEN=${{ secrets.SALESFORCE_TOKEN }} \
+              --env=SALESFORCE_CLIENT_ID=${{ secrets.SALESFORCE_CLIENT_ID }} \
+              --env=SALESFORCE_CLIENT_SECRET=${{ secrets.SALESFORCE_CLIENT_SECRET }} \
+              --env=BUCKET=test-trib-developers \
+              texastribune/walls-test
+
+  WallsSaveToS3:
+    name: 'Run SoS collector'
+    runs-on:
+      group: LiveLong
+      labels: [ self-hosted, cronjobs ]
+    timeout-minutes: 10
+    outputs:
+      output1: ${{ steps.write_job_name.outputs.jobname }}
+    if: github.event.inputs.job-name == 'WallsSaveToS3'
+    
+    steps:
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_TRIBDEVOPS_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TRIBDEVOPS_PAT }}
+
+      - name: Pull republic docker image
+        run: docker pull texastribune/walls:latest
+
+      - name: Run SoS Collector
+        run: |
+            docker run --rm \
+              --name wallsjob \
+              --env=SALESFORCE_HOST=${{ secrets.SALESFORCE_HOST }} \
+              --env=SALESFORCE_USERNAME=${{ secrets.SALESFORCE_USERNAME }} \
+              --env=SALESFORCE_PASSWORD=${{ secrets.SALESFORCE_PASSWORD }} \
+              --env=SALESFORCE_TOKEN=${{ secrets.SALESFORCE_TOKEN }} \
+              --env=SALESFORCE_CLIENT_ID=${{ secrets.SALESFORCE_CLIENT_ID }} \
+              --env=SALESFORCE_CLIENT_SECRET=${{ secrets.SALESFORCE_CLIENT_SECRET }} \
+              --env=BUCKET=${{ env.MEMBERSHIP_BUCKET }} \
+              texastribune/walls
+
+      - name: write job name
+        id: write_job_name
+        if: ${{ failure() }}
+        run:  echo "jobname=WallsSaveToS3" >> "$GITHUB_OUTPUT"
+
+  NotifySlack:
+    name: 'Notify in #tech-critical' # send to tech_test to test
+    runs-on: ubuntu-22.04
+
+    needs: [ WallsSaveToS3 ]
+    if: "always()&&(needs.WallsSaveToS3.result=='failure')"
+
+    steps:
+      - name: See results
+        run: echo '${{ toJSON(needs) }}'
+
+      - name: Send slack message to tech-critical
+        env:
+          OUTPUT1: ${{needs.WallsSaveToS3.outputs.output1}}
+
+        run: |
+          curl  -H "Content-type: application/json" \
+                -H "Authorization: Bearer ${{ secrets.PIPELINES_GITHUB_SLACK_BOT_TOKEN }}" \
+                -X POST https://slack.com/api/chat.postMessage \
+                -d '{
+                      "channel":"C0B4ZL11R", 
+                      "blocks":[
+                                  {
+                                    "type":"section", 
+                                    "text":{
+                                              "type":"mrkdwn",
+                                              "text":":arrow_down: Failed jobs: ${{ env.OUTPUT1 }} \nWorkflow name: ${{ github.workflow }}\nFailed run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                                            }
+                                  }
+                                ]
+                    }'
