@@ -71,7 +71,7 @@ class SalesforceConnection(object):
             "client_id": SALESFORCE["CLIENT_ID"],
             "client_secret": SALESFORCE["CLIENT_SECRET"],
             "username": SALESFORCE["USERNAME"],
-            "password": "{0}{1}".format(SALESFORCE["PASSWORD"], SALESFORCE["TOKEN"]),
+            "password": SALESFORCE["PASSWORD"],
         }
         token_path = "/services/oauth2/token"
         url = "{0}://{1}{2}".format("https", SALESFORCE["HOST"], token_path)
