@@ -170,7 +170,7 @@ def sf_data(query):
     TOKEN = SALESFORCE["TOKEN"]
     HOST = SALESFORCE["HOST"]
 
-    sf = Salesforce(username=USER, password=PASS, security_token=TOKEN)
+    sf = Salesforce(username=USER, password=PASS, security_token="")
 
     bulk = SalesforceBulk(sessionId=sf.session_id, host=HOST)
 
