@@ -75,9 +75,13 @@ class SalesforceConnection(object):
         }
         token_path = "/services/oauth2/token"
         url = "{0}://{1}{2}".format("https", SALESFORCE["HOST"], token_path)
-        # TODO: some error handling here:
         r = requests.post(url, data=payload)
         response = json.loads(r.text)
+        if r.status_code != 200 or "instance_url" not in response:
+            raise RuntimeError(
+                "Salesforce OAuth2 token request failed: "
+                "status={}, body={}".format(r.status_code, response)
+            )
         self.instance_url = response["instance_url"]
         access_token = response["access_token"]
 
