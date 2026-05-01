@@ -1,6 +1,7 @@
 salesforce-bulk==2.1.0
 pandas==1.4.0
+numpy<2.0
 simple-salesforce==0.74.3
 boto3==1.11.1
 #ipdb
-#pytest
+pytest
