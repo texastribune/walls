@@ -14,6 +14,7 @@ from convert import (
     _sort_circle,
     _strip_sort_key,
     convert_donors,
+    convert_donors_per_newsroom_over_1k,
     convert_sponsors,
 )
 from s3 import push_to_s3
@@ -53,6 +54,32 @@ circle_query = """
     AND Membership_Status__c = 'Current'
     ORDER BY Membership_Level_TT__c
 
+"""
+
+# Per-newsroom variant of sponsors_query — adds Newsroom__c to SELECT and filter
+sponsors_query_per_newsroom = """
+        SELECT Id, AccountId, Amount, CloseDate, Type, RecordTypeId, Newsroom__c
+        FROM Opportunity
+        WHERE RecordTypeId IN (
+            '01216000001IhmxAAC',
+            '01216000001IhIEAA0',
+            '01246000000hj93AAA',
+            '01216000001IhvaAAC'
+        )
+        AND StageName IN ('Closed Won', 'Invoiced', 'Pledged')
+        AND Type != 'Earned Revenue'
+        AND Amount != 0
+        AND Newsroom__c IN ('Texas Tribune', 'Austin', 'Waco Bridge')
+    """
+
+# Per-newsroom donors — Membership only; $1k threshold applied in Python post-query
+donors_query_membership_per_newsroom = """
+    SELECT Id, AccountId, Amount, CloseDate, RecordTypeId, Newsroom__c
+    FROM Opportunity
+    WHERE RecordTypeId = '01216000001IhHpAAK'
+    AND StageName IN ('Closed Won', 'Pledged')
+    AND Newsroom__c IN ('Texas Tribune', 'Austin', 'Waco Bridge')
+    AND Amount > 0
 """
 
 
@@ -242,3 +269,26 @@ json_output = convert_donors(opportunities=opps, accounts=accts)
 
 print("Saving donors to S3...")
 push_to_s3(filename="donors.json", contents=json_output)
+
+# Per-newsroom sponsors (3 files: texas-tribune, austin, waco-bridge)
+print("Fetching per-newsroom sponsor data...")
+opps_pn, accts_pn = sf_data(sponsors_query_per_newsroom)
+
+for newsroom_value in ("Texas Tribune", "Austin", "Waco Bridge"):
+    partition = opps_pn[opps_pn["Newsroom__c"] == newsroom_value]
+    file_slug = newsroom_value.lower().replace(" ", "-")
+    print(f"Transforming {newsroom_value} sponsors ({len(partition)} rows)...")
+    if partition.empty:
+        # convert_sponsors crashes on zero-row input (no Amount column to coerce)
+        json_output = json.dumps({})
+    else:
+        json_output = convert_sponsors(opportunities=partition, accounts=accts_pn)
+    push_to_s3(filename=f"per-newsroom/{file_slug}_sponsors.json", contents=json_output)
+
+# Per-newsroom donors (1 unified file, >=$1k per-newsroom threshold)
+print("Fetching per-newsroom donor data...")
+opps_pn, accts_pn = sf_data(donors_query_membership_per_newsroom)
+print("Transforming per-newsroom donors...")
+json_output = convert_donors_per_newsroom_over_1k(opportunities=opps_pn, accounts=accts_pn)
+print("Saving per-newsroom donors to S3...")
+push_to_s3(filename="per-newsroom/all-donors-per-newsroom-over-1k.json", contents=json_output)

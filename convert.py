@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 import pandas as pd
@@ -308,6 +309,70 @@ def _strip_sort_key(the_dict):
             new_list.append(tup[2])
         new_dict[k] = new_list
     return new_dict
+
+
+def convert_donors_per_newsroom_over_1k(opportunities, accounts):
+    """
+    Aggregate Membership-only donor opportunities into a unified per-newsroom
+    file. A donor qualifies if their per-newsroom total is >= $1,000 in at
+    least one newsroom (Texas Tribune, Austin, or Waco Bridge).
+
+    Returns a JSON string with shape:
+        {metadata: {generated_at, threshold, donor_record_types, newsrooms},
+         donors: [{attribution, qualifying_newsrooms, totals_by_newsroom}]}
+    """
+    NEWSROOMS = ("Texas Tribune", "Austin", "Waco Bridge")
+
+    opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
+    opportunities = opportunities.dropna(subset=["Amount"])
+    opportunities = opportunities[opportunities["AccountId"] != ""]
+
+    # Belt-and-suspenders against SOQL drift / new picklist values
+    opportunities = opportunities[opportunities["Newsroom__c"].isin(NEWSROOMS)]
+
+    subtotals = (
+        opportunities.groupby(["AccountId", "Newsroom__c"])["Amount"]
+        .sum()
+        .reset_index()
+    )
+    wide = (
+        subtotals.pivot(index="AccountId", columns="Newsroom__c", values="Amount")
+        .fillna(0)
+        .reindex(columns=list(NEWSROOMS), fill_value=0)
+    )
+    qualifying = wide[(wide >= 1000).any(axis=1)]
+
+    accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
+
+    def _round_to_int(amount):
+        return int(Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    donors = []
+    for accountid, row in qualifying.iterrows():
+        raw_attribution = accounts_dict.get(accountid)
+        attribution = None if pd.isna(raw_attribution) else raw_attribution
+        donors.append(
+            {
+                "attribution": attribution,
+                "qualifying_newsrooms": [n for n in NEWSROOMS if row[n] >= 1000],
+                "totals_by_newsroom": {n: _round_to_int(row[n]) for n in NEWSROOMS},
+            }
+        )
+
+    donors.sort(
+        key=lambda d: (d["attribution"] is None, (d["attribution"] or "").lower())
+    )
+
+    final = {
+        "metadata": {
+            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "threshold": 1000,
+            "donor_record_types": ["Membership"],
+            "newsrooms": list(NEWSROOMS),
+        },
+        "donors": donors,
+    }
+    return json.dumps(final)
 
 
 if __name__ == "__main__":
