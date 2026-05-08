@@ -222,7 +222,7 @@ def sf_data(query):
     job = bulk.create_query_job("Account", contentType="CSV")
     print("Creating Account job...")
 
-    batch = bulk.query(job, "SELECT Id, Website, Text_For_Donor_Wall__c FROM Account")
+    batch = bulk.query(job, "SELECT Id, Website, Text_For_Donor_Wall__c, Type FROM Account")
     print("Issuing query...")
     while not bulk.is_batch_done(batch):
         print("waiting for query to complete...")

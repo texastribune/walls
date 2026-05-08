@@ -344,8 +344,20 @@ def convert_donors_per_newsroom_over_1k(opportunities, accounts):
 
     accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
 
+    # Account.Type drives the entity_type classification downstream (CF1.8).
+    # Defensive: tolerate fixtures or SOQL drift where the column is absent.
+    if "Type" in accounts.columns:
+        type_dict = accounts.set_index("AccountId")["Type"].to_dict()
+    else:
+        type_dict = {}
+
     def _round_to_int(amount):
         return int(Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    def _safe_account_type(value):
+        if value is None or pd.isna(value) or value == "":
+            return None
+        return value
 
     donors = []
     for accountid, row in qualifying.iterrows():
@@ -354,6 +366,7 @@ def convert_donors_per_newsroom_over_1k(opportunities, accounts):
         donors.append(
             {
                 "attribution": attribution,
+                "account_type": _safe_account_type(type_dict.get(accountid)),
                 "qualifying_newsrooms": [n for n in NEWSROOMS if row[n] >= 1000],
                 "totals_by_newsroom": {n: _round_to_int(row[n]) for n in NEWSROOMS},
             }

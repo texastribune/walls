@@ -712,3 +712,68 @@ def test_convert_donors_per_newsroom_over_1k_metadata_block():
     assert metadata["newsrooms"] == ["Texas Tribune", "Austin", "Waco Bridge"]
     assert metadata["generated_at"].endswith("Z")
     assert len(metadata["generated_at"]) == 20  # YYYY-MM-DDTHH:MM:SSZ
+
+
+def test_convert_donors_per_newsroom_over_1k_account_type_passthrough():
+    """
+    Account.Type flows through to each donor entry as `account_type`
+    (raw SF value). Step 2 will map this to entity_type per CF1.8.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A2",            "A3",            "A4"],
+            "Amount":      [1000.0,          1000.0,          1000.0,          1000.0],
+            "Newsroom__c": ["Texas Tribune", "Texas Tribune", "Texas Tribune", "Texas Tribune"],
+            "CloseDate":   ["2025-03-01"] * 4,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1", "A2", "A3", "A4"],
+            "Text_For_Donor_Wall__c": ["Donor A1", "Donor A2", "Donor A3", "Donor A4"],
+            "Type": ["Household", "Foundation", "Corporate", "Association"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    by_attr = {d["attribution"]: d for d in actual["donors"]}
+    assert by_attr["Donor A1"]["account_type"] == "Household"
+    assert by_attr["Donor A2"]["account_type"] == "Foundation"
+    assert by_attr["Donor A3"]["account_type"] == "Corporate"
+    assert by_attr["Donor A4"]["account_type"] == "Association"
+
+
+def test_convert_donors_per_newsroom_over_1k_account_type_missing_or_empty():
+    """
+    When the Type column is absent (e.g., older fixtures or SOQL drift) or
+    contains an empty string, account_type is None. Step 2 will default
+    null to 'organization' per CF1.8 §3.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1"],
+            "Amount":      [1000.0],
+            "Newsroom__c": ["Texas Tribune"],
+            "CloseDate":   ["2025-03-01"],
+        }
+    )
+
+    # No Type column at all
+    accounts_no_col = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts_no_col))
+    assert actual["donors"][0]["account_type"] is None
+
+    # Type column present but empty string
+    accounts_empty = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+            "Type": [""],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts_empty))
+    assert actual["donors"][0]["account_type"] is None
