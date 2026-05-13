@@ -242,6 +242,80 @@ def convert_donors(accounts, opportunities):
     return export
 
 
+def convert_donors_per_newsroom_over_1k(opportunities, accounts):
+    """
+    Aggregate Membership-only donor opportunities into a unified per-newsroom
+    file. A donor qualifies if their per-newsroom total is >= $1,000 in at
+    least one newsroom (Texas Tribune, Austin, or Waco Bridge).
+
+    Returns a JSON string with shape:
+        {metadata: {generated_at, threshold, donor_record_types, newsrooms},
+         donors: [{attribution, qualifying_newsrooms, totals_by_newsroom}]}
+    """
+    NEWSROOMS = ("Texas Tribune", "Austin", "Waco Bridge")
+    THRESHOLD = 1000
+
+    opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
+    opportunities = opportunities.dropna(subset=["Amount"])
+    opportunities = opportunities[opportunities["AccountId"] != ""]
+
+    # Belt-and-suspenders against SOQL drift / new picklist values
+    opportunities = opportunities[opportunities["Newsroom__c"].isin(NEWSROOMS)]
+
+    # sum opportunity amounts per account per newsroom
+    subtotals = (
+        opportunities.groupby(["AccountId", "Newsroom__c"])["Amount"]
+        .sum()
+        .reset_index()
+    )
+    # reorganize to one row per account with a column for each newsroom's
+    # total, including newsrooms with no giving
+    acct_totals_by_newsroom = (
+        subtotals.pivot(index="AccountId", columns="Newsroom__c", values="Amount")
+        .fillna(0)
+        .reindex(columns=list(NEWSROOMS), fill_value=0)
+    )
+    qualifying = acct_totals_by_newsroom[
+        (acct_totals_by_newsroom >= THRESHOLD).any(axis=1)
+    ]
+
+    accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
+
+    # check for 'Type' column
+    if "Type" in accounts.columns:
+        type_dict = accounts.set_index("AccountId")["Type"].to_dict()
+    else:
+        type_dict = {}
+
+    donors = []
+    for accountid, row in qualifying.iterrows():
+        raw_attribution = accounts_dict.get(accountid)
+        attribution = None if pd.isna(raw_attribution) else raw_attribution
+        donors.append(
+            {
+                "attribution": attribution,
+                "account_type": _safe_account_type(type_dict.get(accountid)),
+                "qualifying_newsrooms": [n for n in NEWSROOMS if row[n] >= THRESHOLD],
+                "totals_by_newsroom": {n: _round_to_int(row[n]) for n in NEWSROOMS},
+            }
+        )
+
+    donors.sort(
+        key=lambda d: (d["attribution"] is None, (d["attribution"] or "").lower())
+    )
+
+    final = {
+        "metadata": {
+            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "threshold": THRESHOLD,
+            "donor_record_types": ["Membership"],
+            "newsrooms": list(NEWSROOMS),
+        },
+        "donors": donors,
+    }
+    return json.dumps(final)
+
+
 def _extract_and_map(argument=None, key=None, value=None, sort_key=None):
     """
     Transform a list with dictionaries like this:
@@ -311,81 +385,14 @@ def _strip_sort_key(the_dict):
     return new_dict
 
 
-def convert_donors_per_newsroom_over_1k(opportunities, accounts):
-    """
-    Aggregate Membership-only donor opportunities into a unified per-newsroom
-    file. A donor qualifies if their per-newsroom total is >= $1,000 in at
-    least one newsroom (Texas Tribune, Austin, or Waco Bridge).
+def _round_to_int(amount):
+    return int(Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
-    Returns a JSON string with shape:
-        {metadata: {generated_at, threshold, donor_record_types, newsrooms},
-         donors: [{attribution, qualifying_newsrooms, totals_by_newsroom}]}
-    """
-    NEWSROOMS = ("Texas Tribune", "Austin", "Waco Bridge")
 
-    opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
-    opportunities = opportunities.dropna(subset=["Amount"])
-    opportunities = opportunities[opportunities["AccountId"] != ""]
-
-    # Belt-and-suspenders against SOQL drift / new picklist values
-    opportunities = opportunities[opportunities["Newsroom__c"].isin(NEWSROOMS)]
-
-    subtotals = (
-        opportunities.groupby(["AccountId", "Newsroom__c"])["Amount"]
-        .sum()
-        .reset_index()
-    )
-    wide = (
-        subtotals.pivot(index="AccountId", columns="Newsroom__c", values="Amount")
-        .fillna(0)
-        .reindex(columns=list(NEWSROOMS), fill_value=0)
-    )
-    qualifying = wide[(wide >= 1000).any(axis=1)]
-
-    accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
-
-    # Account.Type drives the entity_type classification downstream (CF1.8).
-    # Defensive: tolerate fixtures or SOQL drift where the column is absent.
-    if "Type" in accounts.columns:
-        type_dict = accounts.set_index("AccountId")["Type"].to_dict()
-    else:
-        type_dict = {}
-
-    def _round_to_int(amount):
-        return int(Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-
-    def _safe_account_type(value):
-        if value is None or pd.isna(value) or value == "":
-            return None
-        return value
-
-    donors = []
-    for accountid, row in qualifying.iterrows():
-        raw_attribution = accounts_dict.get(accountid)
-        attribution = None if pd.isna(raw_attribution) else raw_attribution
-        donors.append(
-            {
-                "attribution": attribution,
-                "account_type": _safe_account_type(type_dict.get(accountid)),
-                "qualifying_newsrooms": [n for n in NEWSROOMS if row[n] >= 1000],
-                "totals_by_newsroom": {n: _round_to_int(row[n]) for n in NEWSROOMS},
-            }
-        )
-
-    donors.sort(
-        key=lambda d: (d["attribution"] is None, (d["attribution"] or "").lower())
-    )
-
-    final = {
-        "metadata": {
-            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "threshold": 1000,
-            "donor_record_types": ["Membership"],
-            "newsrooms": list(NEWSROOMS),
-        },
-        "donors": donors,
-    }
-    return json.dumps(final)
+def _safe_account_type(value):
+    if value is None or pd.isna(value) or value == "":
+        return None
+    return value
 
 
 if __name__ == "__main__":
