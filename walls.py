@@ -275,15 +275,17 @@ print("Fetching per-newsroom sponsor data...")
 opps_pn, accts_pn = sf_data(sponsors_query_per_newsroom)
 
 for newsroom_value in ("Texas Tribune", "Austin", "Waco Bridge"):
+    # narrow the all-newsrooms result to this newsroom's opportunities
     partition = opps_pn[opps_pn["Newsroom__c"] == newsroom_value]
     file_slug = newsroom_value.lower().replace(" ", "-")
     print(f"Transforming {newsroom_value} sponsors ({len(partition)} rows)...")
     if partition.empty:
-        # convert_sponsors crashes on zero-row input (no Amount column to coerce)
-        json_output = json.dumps({})
-    else:
-        json_output = convert_sponsors(opportunities=partition, accounts=accts_pn)
-    push_to_s3(filename=f"per-newsroom/{file_slug}_sponsors.json", contents=json_output)
+        # Skip the push so a transient zero-row result can't clobber a previously
+        # good list. Embeddings Lambda tolerates missing input files.
+        print(f"  no rows for {newsroom_value} — skipping push")
+        continue
+    json_output = convert_sponsors(opportunities=partition, accounts=accts_pn)
+    push_to_s3(filename=f"per-newsroom/{file_slug}-sponsors.json", contents=json_output)
 
 # Per-newsroom donors (1 unified file, >=$1k per-newsroom threshold)
 print("Fetching per-newsroom donor data...")
