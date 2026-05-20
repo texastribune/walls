@@ -9,6 +9,7 @@ from convert import (
     _strip_sort_key,
     clean_url,
     convert_donors,
+    convert_donors_per_newsroom_over_1k,
     convert_sponsors,
     make_pretty_money,
 )
@@ -583,3 +584,196 @@ def test_clean_url():
     input = "http://"
     actual = clean_url(input)
     assert actual == ""
+
+
+def test_convert_donors_per_newsroom_over_1k_basic():
+    """
+    Comprehensive case covering threshold, multi-newsroom qualifying,
+    cumulative-cross-newsroom failure, and defensive filter.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A2",            "A3",            "A3",     "A4",            "A4",     "A5"],
+            "Amount":      [1000.0,          999.0,           1000.0,          1500.0,   500.0,           400.0,    1000.0],
+            "Newsroom__c": ["Texas Tribune", "Texas Tribune", "Texas Tribune", "Austin", "Texas Tribune", "Austin", "Bogus"],
+            "CloseDate":   ["2025-03-01"] * 7,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1", "A2", "A3", "A4", "A5"],
+            "Text_For_Donor_Wall__c": ["Donor A1", "Donor A2", "Donor A3", "Donor A4", "Donor A5"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+
+    attributions = [d["attribution"] for d in actual["donors"]]
+    assert attributions == ["Donor A1", "Donor A3"]
+
+    a1 = next(d for d in actual["donors"] if d["attribution"] == "Donor A1")
+    assert a1["qualifying_newsrooms"] == ["Texas Tribune"]
+    assert a1["totals_by_newsroom"] == {"Texas Tribune": 1000, "Austin": 0, "Waco Bridge": 0}
+
+    a3 = next(d for d in actual["donors"] if d["attribution"] == "Donor A3")
+    assert a3["qualifying_newsrooms"] == ["Texas Tribune", "Austin"]
+    assert a3["totals_by_newsroom"] == {"Texas Tribune": 1000, "Austin": 1500, "Waco Bridge": 0}
+
+
+def test_convert_donors_per_newsroom_over_1k_below_threshold():
+    """
+    Donor with $500 Tribune + $400 Austin (cumulative $900) qualifies in
+    NEITHER newsroom — the threshold is per-newsroom, not cumulative.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A1"],
+            "Amount":      [500.0,           400.0],
+            "Newsroom__c": ["Texas Tribune", "Austin"],
+            "CloseDate":   ["2025-03-01"] * 2,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    assert actual["donors"] == []
+
+
+def test_convert_donors_per_newsroom_over_1k_exact_threshold():
+    """
+    $1000 exactly qualifies; $999 does not.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A2"],
+            "Amount":      [1000.0,          999.0],
+            "Newsroom__c": ["Texas Tribune", "Texas Tribune"],
+            "CloseDate":   ["2025-03-01"] * 2,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1", "A2"],
+            "Text_For_Donor_Wall__c": ["Donor A1", "Donor A2"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    assert [d["attribution"] for d in actual["donors"]] == ["Donor A1"]
+
+
+def test_convert_donors_per_newsroom_over_1k_defensive_filter():
+    """
+    Row with Newsroom__c outside the canonical three (e.g., a new picklist
+    value or stale data) is silently dropped before aggregation.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A2"],
+            "Amount":      [1000.0,          1000.0],
+            "Newsroom__c": ["Texas Tribune", "Bogus"],
+            "CloseDate":   ["2025-03-01"] * 2,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1", "A2"],
+            "Text_For_Donor_Wall__c": ["Donor A1", "Donor A2"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    assert [d["attribution"] for d in actual["donors"]] == ["Donor A1"]
+
+
+def test_convert_donors_per_newsroom_over_1k_metadata_block():
+    """
+    Output's metadata block has the documented shape and values.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1"],
+            "Amount":      [1000.0],
+            "Newsroom__c": ["Texas Tribune"],
+            "CloseDate":   ["2025-03-01"],
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    metadata = actual["metadata"]
+    assert metadata["threshold"] == 1000
+    assert metadata["donor_record_types"] == ["Membership"]
+    assert metadata["newsrooms"] == ["Texas Tribune", "Austin", "Waco Bridge"]
+    assert metadata["generated_at"].endswith("Z")
+    assert len(metadata["generated_at"]) == 20  # YYYY-MM-DDTHH:MM:SSZ
+
+
+def test_convert_donors_per_newsroom_over_1k_account_type_passthrough():
+    """
+    Account.Type flows through to each donor entry as `account_type`
+    (raw SF value). Step 2 will map this to entity_type per CF1.8.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1",            "A2",            "A3",            "A4"],
+            "Amount":      [1000.0,          1000.0,          1000.0,          1000.0],
+            "Newsroom__c": ["Texas Tribune", "Texas Tribune", "Texas Tribune", "Texas Tribune"],
+            "CloseDate":   ["2025-03-01"] * 4,
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["A1", "A2", "A3", "A4"],
+            "Text_For_Donor_Wall__c": ["Donor A1", "Donor A2", "Donor A3", "Donor A4"],
+            "Type": ["Household", "Foundation", "Corporate", "Association"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts))
+    by_attr = {d["attribution"]: d for d in actual["donors"]}
+    assert by_attr["Donor A1"]["account_type"] == "Household"
+    assert by_attr["Donor A2"]["account_type"] == "Foundation"
+    assert by_attr["Donor A3"]["account_type"] == "Corporate"
+    assert by_attr["Donor A4"]["account_type"] == "Association"
+
+
+def test_convert_donors_per_newsroom_over_1k_account_type_missing_or_empty():
+    """
+    When the Type column is absent (e.g., older fixtures or SOQL drift) or
+    contains an empty string, account_type is None. Step 2 will default
+    null to 'organization' per CF1.8 §3.
+    """
+    opportunities = DataFrame(
+        {
+            "AccountId":   ["A1"],
+            "Amount":      [1000.0],
+            "Newsroom__c": ["Texas Tribune"],
+            "CloseDate":   ["2025-03-01"],
+        }
+    )
+
+    # No Type column at all
+    accounts_no_col = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts_no_col))
+    assert actual["donors"][0]["account_type"] is None
+
+    # Type column present but empty string
+    accounts_empty = DataFrame(
+        {
+            "AccountId": ["A1"],
+            "Text_For_Donor_Wall__c": ["Donor A1"],
+            "Type": [""],
+        }
+    )
+    actual = json.loads(convert_donors_per_newsroom_over_1k(opportunities, accounts_empty))
+    assert actual["donors"][0]["account_type"] is None
