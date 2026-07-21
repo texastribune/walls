@@ -24,7 +24,7 @@ def push_to_s3(filename=None, contents=None):
         f.write(contents)
     out.seek(0)
 
-    expires = datetime.utcnow() + timedelta(hours=HOURS_TO_EXPIRE)
+    expires = datetime.now(timezone.utc) + timedelta(hours=HOURS_TO_EXPIRE)
     expires = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     s3 = boto3.client("s3")
