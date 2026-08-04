@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -242,19 +243,49 @@ def convert_donors(accounts, opportunities):
     return export
 
 
-def convert_donors_per_newsroom_over_1k(opportunities, accounts):
+def convert_qualified_supporters(donor_opps, sponsor_opps, accounts, as_of=None):
     """
-    Aggregate Membership-only donor opportunities into a unified per-newsroom
-    file. A donor qualifies if their per-newsroom total is >= $1,000 in at
-    least one newsroom (Texas Tribune, Austin, or Waco Bridge).
+    Aggregate donor and sponsor opportunities into one per-newsroom
+    qualification file, used by the Yellow Lights disclosure check. Compiles 
+    sponsors and donors based on whether they hit either or both of these tiers:
+
+        recent    >= $1,000 to that newsroom in the trailing 1,825 days
+        lifetime  >= $100,000 to that newsroom, all time
 
     Returns a JSON string with shape:
-        {metadata: {generated_at, threshold, donor_record_types, newsrooms},
-         donors: [{attribution, qualifying_newsrooms, totals_by_newsroom}]}
+        {metadata: {...},
+         supporters: [{attribution, source, account_type, tiers_by_newsroom}]}
     """
     NEWSROOMS = ("Texas Tribune", "Austin", "Waco Bridge")
-    THRESHOLD = 1000
+    WINDOW_DAYS = 1825
+    RECENT_THRESHOLD = 1000
+    LIFETIME_THRESHOLD = 100000
+    COLUMNS = ["AccountId", "Amount", "CloseDate", "Newsroom__c"]
 
+    final = {
+        "metadata": {
+            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "window_days": WINDOW_DAYS,
+            "recent_threshold": RECENT_THRESHOLD,
+            "lifetime_threshold": LIFETIME_THRESHOLD,
+            "in_kind_included": True,
+            "donor_record_types": ["Membership"],
+            "newsrooms": list(NEWSROOMS),
+        },
+        "supporters": [],
+    }
+
+    frames = []
+    for source, opps in (("donor", donor_opps), ("sponsor", sponsor_opps)):
+        if opps is None or opps.empty:
+            continue
+        frame = opps[COLUMNS].copy()
+        frame["source"] = source
+        frames.append(frame)
+    if not frames:
+        return json.dumps(final)
+
+    opportunities = pd.concat(frames, ignore_index=True)
     opportunities["Amount"] = pd.to_numeric(opportunities["Amount"], errors="coerce")
     opportunities = opportunities.dropna(subset=["Amount"])
     opportunities = opportunities[opportunities["AccountId"] != ""]
@@ -262,57 +293,71 @@ def convert_donors_per_newsroom_over_1k(opportunities, accounts):
     # Belt-and-suspenders against SOQL drift / new picklist values
     opportunities = opportunities[opportunities["Newsroom__c"].isin(NEWSROOMS)]
 
-    # sum opportunity amounts per account per newsroom
-    subtotals = (
-        opportunities.groupby(["AccountId", "Newsroom__c"])["Amount"]
+    # An unparseable CloseDate lands outside the window (NaT fails the
+    # comparison) but still counts toward the all-time total.
+    opportunities["CloseDate"] = pd.to_datetime(
+        opportunities["CloseDate"], errors="coerce"
+    )
+    anchor = pd.Timestamp(as_of) if as_of else pd.Timestamp.utcnow().tz_localize(None)
+    cutoff = anchor.normalize() - pd.Timedelta(days=WINDOW_DAYS)
+
+    keys = ["source", "AccountId", "Newsroom__c"]
+    lifetime = opportunities.groupby(keys)["Amount"].sum()
+    recent = (
+        opportunities[opportunities["CloseDate"] >= cutoff]
+        .groupby(keys)["Amount"]
         .sum()
-        .reset_index()
+        .to_dict()
     )
-    # reorganize to one row per account with a column for each newsroom's
-    # total, including newsrooms with no giving
-    acct_totals_by_newsroom = (
-        subtotals.pivot(index="AccountId", columns="Newsroom__c", values="Amount")
-        .fillna(0)
-        .reindex(columns=list(NEWSROOMS), fill_value=0)
-    )
-    qualifying = acct_totals_by_newsroom[
-        (acct_totals_by_newsroom >= THRESHOLD).any(axis=1)
-    ]
 
-    accounts_dict = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
+    # Collect the tiers each account cleared, per newsroom. A newsroom the
+    # account cleared nothing in is excluded.
+    tiers = defaultdict(dict)
+    for (source, accountid, newsroom), lifetime_total in lifetime.items():
+        cleared = []
+        if recent.get((source, accountid, newsroom), 0) >= RECENT_THRESHOLD:
+            cleared.append("recent")
+        if lifetime_total >= LIFETIME_THRESHOLD:
+            cleared.append("lifetime")
+        if cleared:
+            tiers[(source, accountid)][newsroom] = cleared
 
-    # check for 'Type' column
+    wall_text = accounts.set_index("AccountId")["Text_For_Donor_Wall__c"].to_dict()
     if "Type" in accounts.columns:
         type_dict = accounts.set_index("AccountId")["Type"].to_dict()
     else:
         type_dict = {}
 
-    donors = []
-    for accountid, row in qualifying.iterrows():
-        raw_attribution = accounts_dict.get(accountid)
-        attribution = None if pd.isna(raw_attribution) else raw_attribution
-        donors.append(
+    supporters = []
+    for (source, accountid), tiers_by_newsroom in tiers.items():
+        raw_attribution = wall_text.get(accountid)
+        supporters.append(
             {
-                "attribution": attribution,
-                "account_type": _safe_account_type(type_dict.get(accountid)),
-                "qualifying_newsrooms": [n for n in NEWSROOMS if row[n] >= THRESHOLD],
-                "totals_by_newsroom": {n: _round_to_int(row[n]) for n in NEWSROOMS},
+                "attribution": None if pd.isna(raw_attribution) else raw_attribution,
+                "source": source,
+                # Sponsor accounts are organizations by definition. Leaving their
+                # account_type null keeps a Household-typed sponsor from being
+                # routed to the consumer's personal-name matching path.
+                "account_type": (
+                    _safe_account_type(type_dict.get(accountid))
+                    if source == "donor"
+                    else None
+                ),
+                "tiers_by_newsroom": {
+                    n: tiers_by_newsroom[n] for n in NEWSROOMS if n in tiers_by_newsroom
+                },
             }
         )
 
-    donors.sort(
-        key=lambda d: (d["attribution"] is None, (d["attribution"] or "").lower())
+    supporters.sort(
+        key=lambda s: (
+            s["attribution"] is None,
+            (s["attribution"] or "").lower(),
+            s["source"],
+        )
     )
 
-    final = {
-        "metadata": {
-            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "threshold": THRESHOLD,
-            "donor_record_types": ["Membership"],
-            "newsrooms": list(NEWSROOMS),
-        },
-        "donors": donors,
-    }
+    final["supporters"] = supporters
     return json.dumps(final)
 
 
@@ -383,10 +428,6 @@ def _strip_sort_key(the_dict):
             new_list.append(tup[2])
         new_dict[k] = new_list
     return new_dict
-
-
-def _round_to_int(amount):
-    return int(Decimal(str(amount)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 def _safe_account_type(value):
