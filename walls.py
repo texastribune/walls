@@ -14,7 +14,7 @@ from convert import (
     _sort_circle,
     _strip_sort_key,
     convert_donors,
-    convert_donors_per_newsroom_over_1k,
+    convert_qualified_supporters,
     convert_sponsors,
 )
 from s3 import push_to_s3
@@ -72,7 +72,7 @@ sponsors_query_per_newsroom = """
         AND Newsroom__c IN ('Texas Tribune', 'Austin', 'Waco Bridge')
     """
 
-# Per-newsroom donors — Membership only; $1k threshold applied in Python post-query
+# Per-newsroom donors — Membership only; tier thresholds applied in Python post-query
 donors_query_membership_per_newsroom = """
     SELECT Id, AccountId, Amount, CloseDate, RecordTypeId, Newsroom__c
     FROM Opportunity
@@ -270,27 +270,21 @@ json_output = convert_donors(opportunities=opps, accounts=accts)
 print("Saving donors to S3...")
 push_to_s3(filename="donors.json", contents=json_output)
 
-# Per-newsroom sponsors (3 files: texas-tribune, austin, waco-bridge)
+# Qualified supporters — donors and sponsors in one file, tiered per newsroom.
 print("Fetching per-newsroom sponsor data...")
-opps_pn, accts_pn = sf_data(sponsors_query_per_newsroom)
+sponsor_opps, accts_pn = sf_data(sponsors_query_per_newsroom)
 
-for newsroom_value in ("Texas Tribune", "Austin", "Waco Bridge"):
-    # narrow the all-newsrooms result to this newsroom's opportunities
-    partition = opps_pn[opps_pn["Newsroom__c"] == newsroom_value]
-    file_slug = newsroom_value.lower().replace(" ", "-")
-    print(f"Transforming {newsroom_value} sponsors ({len(partition)} rows)...")
-    if partition.empty:
-        # Skip the push so a transient zero-row result can't clobber a previously
-        # good list. Embeddings Lambda tolerates missing input files.
-        print(f"  no rows for {newsroom_value} — skipping push")
-        continue
-    json_output = convert_sponsors(opportunities=partition, accounts=accts_pn)
-    push_to_s3(filename=f"per-newsroom/{file_slug}-sponsors.json", contents=json_output)
-
-# Per-newsroom donors (1 unified file, >=$1k per-newsroom threshold)
 print("Fetching per-newsroom donor data...")
-opps_pn, accts_pn = sf_data(donors_query_membership_per_newsroom)
-print("Transforming per-newsroom donors...")
-json_output = convert_donors_per_newsroom_over_1k(opportunities=opps_pn, accounts=accts_pn)
-print("Saving per-newsroom donors to S3...")
-push_to_s3(filename="per-newsroom/all-donors-per-newsroom-over-1k.json", contents=json_output)
+donor_opps, _ = sf_data(donors_query_membership_per_newsroom)
+
+print("Transforming qualified supporters...")
+json_output = convert_qualified_supporters(
+    donor_opps=donor_opps, sponsor_opps=sponsor_opps, accounts=accts_pn
+)
+
+# Skip the push on an empty result
+if json.loads(json_output)["supporters"]:
+    print("Saving qualified supporters to S3...")
+    push_to_s3(filename="per-newsroom/qualified-supporters.json", contents=json_output)
+else:
+    print("  no qualifying supporters — skipping push")
