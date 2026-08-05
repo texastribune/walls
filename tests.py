@@ -601,6 +601,8 @@ IN_WINDOW = _days_before(30)
 WINDOW_EDGE_IN = _days_before(1825)
 WINDOW_EDGE_OUT = _days_before(1826)
 LONG_AGO = _days_before(3000)
+FUTURE = _days_before(-365)
+TOMORROW = _days_before(-1)
 
 
 def _run(donor_opps=None, sponsor_opps=None, accounts=None):
@@ -700,6 +702,59 @@ def test_qualified_supporters_window_boundary():
     assert by_attr["Supporter C1"]["tiers_by_newsroom"] == {"Texas Tribune": ["recent"]}
     assert "Supporter C2" not in by_attr
     assert by_attr["Supporter C3"]["tiers_by_newsroom"] == {"Texas Tribune": ["lifetime"]}
+
+
+def test_qualified_supporters_excludes_future_close_dates():
+    """
+    A CloseDate after the run date is pledged money that hasn't arrived, and
+    counts toward neither tier. C4 is a $1,000/yr recurring pledge whose only
+    past installment is $1,000 — it qualifies on that alone, and the two future
+    installments must not lift it into the lifetime tier. C5's single future
+    gift leaves it out of the file entirely.
+    """
+    donor_opps = DataFrame(
+        {
+            "AccountId":   ["C4",       "C4",     "C4",       "C5",      "C6"],
+            "Amount":      [1000.0,     99000.0,  100000.0,   100000.0,  1000.0],
+            "Newsroom__c": ["Texas Tribune"] * 5,
+            "CloseDate":   [IN_WINDOW,  FUTURE,   FUTURE,     FUTURE,    TOMORROW],
+        }
+    )
+    accounts = DataFrame(
+        {
+            "AccountId": ["C4", "C5", "C6"],
+            "Text_For_Donor_Wall__c": ["Supporter C4", "Supporter C5", "Supporter C6"],
+        }
+    )
+    actual = _run(donor_opps=donor_opps, accounts=accounts)
+    by_attr = {s["attribution"]: s for s in actual["supporters"]}
+
+    assert by_attr["Supporter C4"]["tiers_by_newsroom"] == {"Texas Tribune": ["recent"]}
+    assert "Supporter C5" not in by_attr
+    assert "Supporter C6" not in by_attr  # one day out is still out
+
+
+def test_qualified_supporters_undated_gifts_still_count_lifetime():
+    """
+    An unparseable CloseDate is kept, not swept up by the future-date cutoff:
+    it counts toward lifetime (we can't place it in the window) but never
+    toward recent.
+    """
+    donor_opps = DataFrame(
+        {
+            "AccountId":   ["C7"],
+            "Amount":      [100000.0],
+            "Newsroom__c": ["Texas Tribune"],
+            "CloseDate":   [""],
+        }
+    )
+    accounts = DataFrame(
+        {"AccountId": ["C7"], "Text_For_Donor_Wall__c": ["Supporter C7"]}
+    )
+    actual = _run(donor_opps=donor_opps, accounts=accounts)
+    assert actual["supporters"][0]["tiers_by_newsroom"] == {
+        "Texas Tribune": ["lifetime"]
+    }
 
 
 def test_qualified_supporters_per_newsroom_independence():

@@ -249,7 +249,7 @@ def convert_qualified_supporters(donor_opps, sponsor_opps, accounts, as_of=None)
     qualification file, used by the Yellow Lights disclosure check. Compiles 
     sponsors and donors based on whether they hit either or both of these tiers:
 
-        recent    >= $1,000 to that newsroom in the trailing 1,825 days
+        recent    >= $1,000 to that newsroom in the trailing 1,825 days (5 years)
         lifetime  >= $100,000 to that newsroom, all time
 
     Returns a JSON string with shape:
@@ -300,6 +300,10 @@ def convert_qualified_supporters(donor_opps, sponsor_opps, accounts, as_of=None)
     )
     anchor = pd.Timestamp(as_of) if as_of else pd.Timestamp.utcnow().tz_localize(None)
     cutoff = anchor.normalize() - pd.Timedelta(days=WINDOW_DAYS)
+
+    # Drop future close dates from both tiers — that's pledged money that hasn't
+    # arrived. Written as ~(> anchor) so an unparseable date (NaT) is kept.
+    opportunities = opportunities[~(opportunities["CloseDate"] > anchor.normalize())]
 
     keys = ["source", "AccountId", "Newsroom__c"]
     lifetime = opportunities.groupby(keys)["Amount"].sum()
